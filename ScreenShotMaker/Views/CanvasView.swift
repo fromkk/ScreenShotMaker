@@ -1,8 +1,11 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CanvasView: View {
     @Bindable var state: ProjectState
     @State private var zoomScale: Double = 0.5
+    @State private var imageLoadError: String?
+    @State private var showImageLoadError = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -20,6 +23,11 @@ struct CanvasView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor).opacity(0.5))
+        .alert("Image Load Error", isPresented: $showImageLoadError) {
+            Button("OK") {}
+        } message: {
+            Text(imageLoadError ?? "Unknown error")
+        }
     }
 
     private func screenshotPreview(screen: Screen, device: DeviceSize) -> some View {
@@ -122,11 +130,12 @@ struct CanvasView: View {
         RoundedRectangle(cornerRadius: 8)
             .fill(.white)
             .overlay {
-                if screen.screenshotImageData != nil {
-                    // TODO: Display image
-                    Image(systemName: "photo")
-                        .font(.title)
-                        .foregroundStyle(.tertiary)
+                if let imageData = screen.screenshotImageData,
+                   let nsImage = NSImage(data: imageData) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 } else {
                     VStack(spacing: 6) {
                         Image(systemName: "photo.badge.plus")
@@ -138,6 +147,27 @@ struct CanvasView: View {
                     }
                 }
             }
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                handleDrop(providers: providers)
+            }
+    }
+
+    private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        guard let provider = providers.first else { return false }
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
+            guard let data = data as? Data,
+                  let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+            DispatchQueue.main.async {
+                do {
+                    let imageData = try ImageLoader.loadImage(from: url)
+                    state.selectedScreen?.screenshotImageData = imageData
+                } catch {
+                    imageLoadError = error.localizedDescription
+                    showImageLoadError = true
+                }
+            }
+        }
+        return true
     }
 
     private var emptyState: some View {

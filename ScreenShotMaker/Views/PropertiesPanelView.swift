@@ -1,7 +1,10 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct PropertiesPanelView: View {
     @Bindable var state: ProjectState
+    @State private var imageLoadError: String?
+    @State private var showImageLoadError = false
 
     private var selectedScreenBinding: Binding<Screen>? {
         guard let id = state.selectedScreenID,
@@ -202,27 +205,71 @@ struct PropertiesPanelView: View {
     private func screenshotImageSection(screen: Binding<Screen>) -> some View {
         PropertySection(title: "Screenshot Image") {
             VStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                    .foregroundStyle(.secondary)
-                    .frame(height: 80)
-                    .overlay {
-                        VStack(spacing: 6) {
-                            Image(systemName: "arrow.up.doc")
-                                .font(.title3)
-                                .foregroundStyle(.secondary)
-                            Text("Drop image or click to browse")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
+                if let imageData = screen.wrappedValue.screenshotImageData,
+                   let nsImage = NSImage(data: imageData) {
+                    ZStack(alignment: .topTrailing) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxHeight: 120)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        Button {
+                            screen.wrappedValue.screenshotImageData = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(.white, .black.opacity(0.6))
                         }
+                        .buttonStyle(.plain)
+                        .padding(4)
                     }
                     .onTapGesture {
-                        // TODO: File picker
+                        openImagePicker(screen: screen)
                     }
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                        .foregroundStyle(.secondary)
+                        .frame(height: 80)
+                        .overlay {
+                            VStack(spacing: 6) {
+                                Image(systemName: "arrow.up.doc")
+                                    .font(.title3)
+                                    .foregroundStyle(.secondary)
+                                Text("Drop image or click to browse")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .onTapGesture {
+                            openImagePicker(screen: screen)
+                        }
+                }
 
                 Text("PNG or JPEG, max 20MB")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
+            }
+        }
+        .alert("Image Load Error", isPresented: $showImageLoadError) {
+            Button("OK") {}
+        } message: {
+            Text(imageLoadError ?? "Unknown error")
+        }
+    }
+
+    private func openImagePicker(screen: Binding<Screen>) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png, .jpeg]
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                let data = try ImageLoader.loadImage(from: url)
+                screen.wrappedValue.screenshotImageData = data
+            } catch {
+                imageLoadError = error.localizedDescription
+                showImageLoadError = true
             }
         }
     }
