@@ -31,7 +31,7 @@ struct TemplateTests {
     }
 
     @Test("applyTo sets project screens from template")
-    func testApplyTo() {
+    @MainActor func testApplyTo() {
         let state = ProjectState()
         let template = Template.builtIn[0]
         template.applyTo(state)

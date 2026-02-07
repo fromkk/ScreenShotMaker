@@ -3,6 +3,7 @@ import Testing
 @testable import ScreenShotMaker
 
 @Suite("ProjectState Tests")
+@MainActor
 struct ProjectStateTests {
 
     @Test("Initial state has one screen selected")
@@ -115,5 +116,88 @@ struct ProjectStateTests {
 
         #expect(state.selectedLanguage != nil)
         #expect(state.selectedLanguage?.code == state.project.languages[0].code)
+    }
+
+    // MARK: - Undo/Redo Tests
+
+    @Test("addScreen undo restores previous state")
+    func testAddScreenUndo() {
+        let state = ProjectState()
+        let undoManager = UndoManager()
+        state.undoManager = undoManager
+        let initialCount = state.project.screens.count
+
+        state.addScreen()
+        #expect(state.project.screens.count == initialCount + 1)
+
+        undoManager.undo()
+        #expect(state.project.screens.count == initialCount)
+    }
+
+    @Test("deleteScreen undo restores deleted screen")
+    func testDeleteScreenUndo() {
+        let state = ProjectState()
+        let undoManager = UndoManager()
+        undoManager.groupsByEvent = false
+        state.undoManager = undoManager
+
+        undoManager.beginUndoGrouping()
+        state.addScreen()
+        undoManager.endUndoGrouping()
+
+        let addedScreen = state.project.screens.last!
+        let countBeforeDelete = state.project.screens.count
+
+        undoManager.beginUndoGrouping()
+        state.deleteScreen(addedScreen)
+        undoManager.endUndoGrouping()
+        #expect(state.project.screens.count == countBeforeDelete - 1)
+
+        undoManager.undo()
+        #expect(state.project.screens.count == countBeforeDelete)
+        #expect(state.project.screens.contains(where: { $0.id == addedScreen.id }))
+    }
+
+    @Test("moveScreen undo restores original order")
+    func testMoveScreenUndo() {
+        let state = ProjectState()
+        let undoManager = UndoManager()
+        undoManager.groupsByEvent = false
+        state.undoManager = undoManager
+
+        undoManager.beginUndoGrouping()
+        state.addScreen()
+        undoManager.endUndoGrouping()
+
+        undoManager.beginUndoGrouping()
+        state.addScreen()
+        undoManager.endUndoGrouping()
+
+        let originalOrder = state.project.screens.map(\.id)
+
+        undoManager.beginUndoGrouping()
+        state.moveScreen(from: IndexSet(integer: 0), to: 2)
+        undoManager.endUndoGrouping()
+        #expect(state.project.screens[0].id != originalOrder[0])
+
+        undoManager.undo()
+        #expect(state.project.screens.map(\.id) == originalOrder)
+    }
+
+    @Test("updateScreen undo restores original screen")
+    func testUpdateScreenUndo() {
+        let state = ProjectState()
+        let undoManager = UndoManager()
+        state.undoManager = undoManager
+
+        var screen = state.project.screens[0]
+        let originalName = screen.name
+        screen.name = "Updated Name"
+
+        state.updateScreen(screen, actionName: "Rename")
+        #expect(state.project.screens[0].name == "Updated Name")
+
+        undoManager.undo()
+        #expect(state.project.screens[0].name == originalName)
     }
 }

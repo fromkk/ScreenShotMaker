@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Bindable var projectState: ProjectState
+    @Environment(\.undoManager) private var undoManager
 
     var body: some View {
         HStack(spacing: 0) {
@@ -22,6 +23,12 @@ struct ContentView: View {
                 ExportButton(state: projectState)
                 BatchExportButton(state: projectState)
             }
+        }
+        .onAppear {
+            projectState.undoManager = undoManager
+        }
+        .onChange(of: undoManager) { _, newValue in
+            projectState.undoManager = newValue
         }
     }
 }

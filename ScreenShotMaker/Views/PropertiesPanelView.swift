@@ -1,11 +1,17 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
+@preconcurrency import Translation
 
 struct PropertiesPanelView: View {
     @Bindable var state: ProjectState
     @State private var imageLoadError: String?
     @State private var showImageLoadError = false
+    @State private var translationConfig: TranslationSession.Configuration?
+    @State private var isTranslating = false
+    @State private var showTranslatePopover = false
+    @State private var translationError: String?
+    @State private var showTranslationError = false
 
     private var availableFontFamilies: [String] {
         NSFontManager.shared.availableFontFamilies.sorted()
@@ -40,6 +46,14 @@ struct PropertiesPanelView: View {
         .background(Color(nsColor: .controlBackgroundColor))
         .overlay(alignment: .leading) {
             Divider()
+        }
+        .translationTask(translationConfig) { session in
+            await performTranslation(session: session)
+        }
+        .alert("Translation Error", isPresented: $showTranslationError) {
+            Button("OK") {}
+        } message: {
+            Text(translationError ?? "Unknown error")
         }
     }
 
@@ -120,18 +134,38 @@ struct PropertiesPanelView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
+
+                    Button {
+                        showTranslatePopover = true
+                    } label: {
+                        if isTranslating {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("Translate", systemImage: "character.book.closed")
+                                .font(.system(size: 10))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .disabled(isTranslating)
+                    .popover(isPresented: $showTranslatePopover) {
+                        translateLanguagePicker(screen: screen)
+                    }
                 }
 
                 PropertyField(label: "Title") {
                     TextField("Enter title", text: localizedTitleBinding(screen: screen))
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 12))
+                    textStyleToolbar(style: screen.titleStyle, label: "Title")
                 }
 
                 PropertyField(label: "Subtitle") {
                     TextField("Enter subtitle", text: localizedSubtitleBinding(screen: screen))
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 12))
+                    textStyleToolbar(style: screen.subtitleStyle, label: "Subtitle")
                 }
 
                 HStack(spacing: 8) {
@@ -169,6 +203,111 @@ struct PropertiesPanelView: View {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - Translation
+
+    private func translateLanguagePicker(screen: Binding<Screen>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Translate to:")
+                .font(.system(size: 12, weight: .semibold))
+            ForEach(state.project.languages.filter({ $0.code != currentLanguageCode })) { language in
+                Button {
+                    showTranslatePopover = false
+                    startTranslation(screen: screen, targetLanguageCode: language.code)
+                } label: {
+                    Text(language.displayName)
+                        .font(.system(size: 12))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+            }
+            if state.project.languages.filter({ $0.code != currentLanguageCode }).isEmpty {
+                Text("Add more languages to translate")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .frame(minWidth: 160)
+    }
+
+    @State private var translationScreen: Binding<Screen>?
+
+    private func startTranslation(screen: Binding<Screen>, targetLanguageCode: String) {
+        translationScreen = screen
+        isTranslating = true
+        translationConfig = TranslationService.configuration(
+            from: currentLanguageCode,
+            to: targetLanguageCode
+        )
+    }
+
+    private func performTranslation(session: TranslationSession) async {
+        guard let screen = translationScreen else {
+            isTranslating = false
+            return
+        }
+        let sourceText = screen.wrappedValue.text(for: currentLanguageCode)
+
+        do {
+            var requests: [TranslationSession.Request] = []
+            if !sourceText.title.isEmpty {
+                requests.append(TranslationSession.Request(sourceText: sourceText.title, clientIdentifier: "title"))
+            }
+            if !sourceText.subtitle.isEmpty {
+                requests.append(TranslationSession.Request(sourceText: sourceText.subtitle, clientIdentifier: "subtitle"))
+            }
+
+            var translatedText = LocalizedText()
+            let responses = try await session.translations(from: requests)
+            for response in responses {
+                if response.clientIdentifier == "title" {
+                    translatedText.title = response.targetText
+                } else if response.clientIdentifier == "subtitle" {
+                    translatedText.subtitle = response.targetText
+                }
+            }
+
+            if let targetLang = translationConfig?.target {
+                let targetCode = targetLang.minimalIdentifier
+                screen.wrappedValue.setText(translatedText, for: targetCode)
+            }
+        } catch {
+            translationError = error.localizedDescription
+            showTranslationError = true
+        }
+
+        isTranslating = false
+        translationConfig = nil
+    }
+
+    private func textStyleToolbar(style: Binding<TextStyle>, label: String) -> some View {
+        HStack(spacing: 4) {
+            Toggle(isOn: style.isBold) {
+                Text("B").font(.system(size: 11, weight: .bold))
+            }
+            .toggleStyle(.button)
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            Toggle(isOn: style.isItalic) {
+                Text("I").font(.system(size: 11).italic())
+            }
+            .toggleStyle(.button)
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            Spacer()
+
+            Picker("", selection: style.alignment) {
+                Image(systemName: "text.alignleft").tag(TextStyle.TextStyleAlignment.leading)
+                Image(systemName: "text.aligncenter").tag(TextStyle.TextStyleAlignment.center)
+                Image(systemName: "text.alignright").tag(TextStyle.TextStyleAlignment.trailing)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 100)
         }
     }
 

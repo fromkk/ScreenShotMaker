@@ -177,4 +177,66 @@ struct ScreenTests {
         let screen = try JSONDecoder().decode(Screen.self, from: data)
         #expect(screen.isLandscape == false)
     }
+
+    // MARK: - TextStyle Tests
+
+    @Test("TextStyle defaults")
+    func testTextStyleDefaults() {
+        let style = TextStyle()
+        #expect(style.isBold == true)
+        #expect(style.isItalic == false)
+        #expect(style.alignment == .center)
+    }
+
+    @Test("TextStyle encodes and decodes correctly")
+    func testTextStyleCodable() throws {
+        let style = TextStyle(isBold: false, isItalic: true, alignment: .trailing)
+        let data = try JSONEncoder().encode(style)
+        let decoded = try JSONDecoder().decode(TextStyle.self, from: data)
+        #expect(decoded.isBold == false)
+        #expect(decoded.isItalic == true)
+        #expect(decoded.alignment == .trailing)
+    }
+
+    @Test("Screen titleStyle and subtitleStyle defaults")
+    func testScreenTextStyleDefaults() {
+        let screen = Screen()
+        #expect(screen.titleStyle.isBold == true)
+        #expect(screen.subtitleStyle.isBold == false)
+    }
+
+    @Test("Screen titleStyle persists through encoding")
+    func testScreenTextStyleCodable() throws {
+        var screen = Screen(name: "Style Test")
+        screen.titleStyle = TextStyle(isBold: false, isItalic: true, alignment: .leading)
+
+        let data = try JSONEncoder().encode(screen)
+        let decoded = try JSONDecoder().decode(Screen.self, from: data)
+
+        #expect(decoded.titleStyle.isBold == false)
+        #expect(decoded.titleStyle.isItalic == true)
+        #expect(decoded.titleStyle.alignment == .leading)
+    }
+
+    @Test("Screen decodes legacy format without textStyle")
+    func testLegacyFormatWithoutTextStyle() throws {
+        let legacyJSON = """
+        {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "name": "Screen 1",
+            "layoutPreset": "textTop",
+            "title": "Title",
+            "subtitle": "Sub",
+            "background": {"solidColor": {"_0": {"hex": "#FF0000"}}},
+            "showDeviceFrame": true,
+            "fontFamily": "SF Pro Display",
+            "fontSize": 28,
+            "textColorHex": "#FFFFFF"
+        }
+        """
+        let data = Data(legacyJSON.utf8)
+        let screen = try JSONDecoder().decode(Screen.self, from: data)
+        #expect(screen.titleStyle.isBold == true)
+        #expect(screen.subtitleStyle.isBold == false)
+    }
 }

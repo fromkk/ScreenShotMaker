@@ -47,7 +47,7 @@ extension Language {
     ]
 }
 
-@Observable
+@MainActor @Observable
 final class ProjectState {
     var project: ScreenShotProject
     var selectedScreenID: UUID?
@@ -55,6 +55,7 @@ final class ProjectState {
     var selectedLanguageIndex: Int = 0
     var currentFileURL: URL?
     var hasUnsavedChanges: Bool = false
+    var undoManager: UndoManager?
 
     var selectedScreen: Screen? {
         get {
@@ -87,16 +88,63 @@ final class ProjectState {
         let screen = Screen(name: "Screen \(count)", title: "Title", subtitle: "Subtitle")
         project.screens.append(screen)
         selectedScreenID = screen.id
+        hasUnsavedChanges = true
+
+        undoManager?.registerUndo(withTarget: self) { state in
+            state.project.screens.removeAll { $0.id == screen.id }
+            if state.selectedScreenID == screen.id {
+                state.selectedScreenID = state.project.screens.first?.id
+            }
+            state.hasUnsavedChanges = true
+        }
+        undoManager?.setActionName("Add Screen")
     }
 
     func deleteScreen(_ screen: Screen) {
-        project.screens.removeAll { $0.id == screen.id }
+        guard let index = project.screens.firstIndex(where: { $0.id == screen.id }) else { return }
+        let oldScreen = project.screens[index]
+        let oldIndex = index
+        let oldSelectedID = selectedScreenID
+
+        project.screens.remove(at: index)
         if selectedScreenID == screen.id {
             selectedScreenID = project.screens.first?.id
         }
+        hasUnsavedChanges = true
+
+        undoManager?.registerUndo(withTarget: self) { state in
+            let insertAt = min(oldIndex, state.project.screens.count)
+            state.project.screens.insert(oldScreen, at: insertAt)
+            state.selectedScreenID = oldSelectedID
+            state.hasUnsavedChanges = true
+        }
+        undoManager?.setActionName("Delete Screen")
     }
 
     func moveScreen(from source: IndexSet, to destination: Int) {
+        let oldScreens = project.screens
         project.screens.move(fromOffsets: source, toOffset: destination)
+        hasUnsavedChanges = true
+
+        undoManager?.registerUndo(withTarget: self) { state in
+            state.project.screens = oldScreens
+            state.hasUnsavedChanges = true
+        }
+        undoManager?.setActionName("Move Screen")
+    }
+
+    func updateScreen(_ screen: Screen, actionName: String = "Edit Screen") {
+        guard let index = project.screens.firstIndex(where: { $0.id == screen.id }) else { return }
+        let oldScreen = project.screens[index]
+        project.screens[index] = screen
+        hasUnsavedChanges = true
+
+        undoManager?.registerUndo(withTarget: self) { state in
+            if let idx = state.project.screens.firstIndex(where: { $0.id == oldScreen.id }) {
+                state.project.screens[idx] = oldScreen
+                state.hasUnsavedChanges = true
+            }
+        }
+        undoManager?.setActionName(actionName)
     }
 }

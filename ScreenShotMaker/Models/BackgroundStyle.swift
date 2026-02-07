@@ -42,3 +42,13 @@ extension Color {
         return String(format: "#%02X%02X%02X", r, g, b)
     }
 }
+
+extension TextStyle.TextStyleAlignment {
+    var textAlignment: TextAlignment {
+        switch self {
+        case .leading: .leading
+        case .center: .center
+        case .trailing: .trailing
+        }
+    }
+}

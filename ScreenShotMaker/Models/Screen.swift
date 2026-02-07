@@ -10,6 +10,22 @@ struct LocalizedText: Codable, Hashable {
     }
 }
 
+struct TextStyle: Codable, Hashable {
+    var isBold: Bool
+    var isItalic: Bool
+    var alignment: TextStyleAlignment
+
+    enum TextStyleAlignment: String, Codable, CaseIterable {
+        case leading, center, trailing
+    }
+
+    init(isBold: Bool = true, isItalic: Bool = false, alignment: TextStyleAlignment = .center) {
+        self.isBold = isBold
+        self.isItalic = isItalic
+        self.alignment = alignment
+    }
+}
+
 struct Screen: Identifiable, Hashable {
     var id: UUID
     var name: String
@@ -22,6 +38,8 @@ struct Screen: Identifiable, Hashable {
     var fontFamily: String
     var fontSize: Double
     var textColorHex: String
+    var titleStyle: TextStyle
+    var subtitleStyle: TextStyle
 
     // Convenience accessors for default language ("en")
     var title: String {
@@ -69,7 +87,9 @@ struct Screen: Identifiable, Hashable {
         isLandscape: Bool = false,
         fontFamily: String = "SF Pro Display",
         fontSize: Double = 28,
-        textColorHex: String = "#FFFFFF"
+        textColorHex: String = "#FFFFFF",
+        titleStyle: TextStyle = TextStyle(isBold: true),
+        subtitleStyle: TextStyle = TextStyle(isBold: false)
     ) {
         self.id = id
         self.name = name
@@ -82,6 +102,8 @@ struct Screen: Identifiable, Hashable {
         self.fontFamily = fontFamily
         self.fontSize = fontSize
         self.textColorHex = textColorHex
+        self.titleStyle = titleStyle
+        self.subtitleStyle = subtitleStyle
     }
 }
 
@@ -91,6 +113,7 @@ extension Screen: Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, layoutPreset, localizedTexts, background, screenshotImageData
         case showDeviceFrame, isLandscape, fontFamily, fontSize, textColorHex
+        case titleStyle, subtitleStyle
         // Legacy keys
         case title, subtitle
     }
@@ -107,6 +130,8 @@ extension Screen: Codable {
         fontFamily = try container.decode(String.self, forKey: .fontFamily)
         fontSize = try container.decode(Double.self, forKey: .fontSize)
         textColorHex = try container.decode(String.self, forKey: .textColorHex)
+        titleStyle = try container.decodeIfPresent(TextStyle.self, forKey: .titleStyle) ?? TextStyle(isBold: true)
+        subtitleStyle = try container.decodeIfPresent(TextStyle.self, forKey: .subtitleStyle) ?? TextStyle(isBold: false)
 
         // Try new format first, fall back to legacy
         if let texts = try? container.decode([String: LocalizedText].self, forKey: .localizedTexts) {
@@ -131,5 +156,7 @@ extension Screen: Codable {
         try container.encode(fontFamily, forKey: .fontFamily)
         try container.encode(fontSize, forKey: .fontSize)
         try container.encode(textColorHex, forKey: .textColorHex)
+        try container.encode(titleStyle, forKey: .titleStyle)
+        try container.encode(subtitleStyle, forKey: .subtitleStyle)
     }
 }

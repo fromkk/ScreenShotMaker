@@ -112,15 +112,17 @@ struct ExportableScreenView: View {
         return VStack(spacing: ScalingService.scaledPadding(12, factor: sf)) {
             if !localizedText.title.isEmpty {
                 Text(localizedText.title)
-                    .font(.custom(screen.fontFamily, size: titleSize).bold())
+                    .font(.custom(screen.fontFamily, size: titleSize).weight(screen.titleStyle.isBold ? .bold : .regular))
+                    .italic(screen.titleStyle.isItalic)
                     .foregroundStyle(Color(hex: screen.textColorHex))
-                    .multilineTextAlignment(.center)
+                    .multilineTextAlignment(screen.titleStyle.alignment.textAlignment)
             }
             if !localizedText.subtitle.isEmpty {
                 Text(localizedText.subtitle)
-                    .font(.custom(screen.fontFamily, size: subtitleSize))
+                    .font(.custom(screen.fontFamily, size: subtitleSize).weight(screen.subtitleStyle.isBold ? .bold : .regular))
+                    .italic(screen.subtitleStyle.isItalic)
                     .foregroundStyle(Color(hex: screen.textColorHex).opacity(0.8))
-                    .multilineTextAlignment(.center)
+                    .multilineTextAlignment(screen.subtitleStyle.alignment.textAlignment)
             }
         }
     }

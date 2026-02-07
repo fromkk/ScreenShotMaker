@@ -6,7 +6,7 @@ struct Template: Identifiable {
     let description: String
     let screens: [Screen]
 
-    func applyTo(_ state: ProjectState) {
+    @MainActor func applyTo(_ state: ProjectState) {
         state.project.screens = screens
         state.selectedScreenID = screens.first?.id
         state.hasUnsavedChanges = false
