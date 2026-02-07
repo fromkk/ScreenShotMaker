@@ -33,7 +33,8 @@ struct ImageLoaderTests {
     }()
 
     private func createTempFile(name: String, data: Data) throws -> URL {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        let uniqueName = UUID().uuidString + "_" + name
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(uniqueName)
         try data.write(to: url)
         return url
     }
