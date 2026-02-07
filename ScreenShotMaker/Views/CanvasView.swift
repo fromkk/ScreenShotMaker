@@ -31,8 +31,10 @@ struct CanvasView: View {
     }
 
     private func screenshotPreview(screen: Screen, device: DeviceSize) -> some View {
-        let previewWidth = Double(device.portraitWidth) * zoomScale * 0.15
-        let previewHeight = Double(device.portraitHeight) * zoomScale * 0.15
+        let w = screen.isLandscape ? device.landscapeWidth : device.portraitWidth
+        let h = screen.isLandscape ? device.landscapeHeight : device.portraitHeight
+        let previewWidth = Double(w) * zoomScale * 0.15
+        let previewHeight = Double(h) * zoomScale * 0.15
 
         return VStack(spacing: 0) {
             backgroundView(for: screen)
@@ -118,24 +120,27 @@ struct CanvasView: View {
     private func textContent(screen: Screen) -> some View {
         let langCode = state.selectedLanguage?.code ?? "en"
         let localizedText = screen.text(for: langCode)
+        let titleSize = screen.fontSize * zoomScale * 0.4
+        let subtitleSize = screen.fontSize * zoomScale * 0.25
         return VStack(spacing: 6) {
             if !localizedText.title.isEmpty {
                 Text(localizedText.title)
-                    .font(.system(size: screen.fontSize * zoomScale * 0.4, weight: .bold))
+                    .font(.custom(screen.fontFamily, size: titleSize).bold())
                     .foregroundStyle(Color(hex: screen.textColorHex))
                     .multilineTextAlignment(.center)
             }
             if !localizedText.subtitle.isEmpty {
                 Text(localizedText.subtitle)
-                    .font(.system(size: screen.fontSize * zoomScale * 0.25, weight: .regular))
+                    .font(.custom(screen.fontFamily, size: subtitleSize))
                     .foregroundStyle(Color(hex: screen.textColorHex).opacity(0.8))
                     .multilineTextAlignment(.center)
             }
         }
     }
 
+    @ViewBuilder
     private func screenshotPlaceholder(screen: Screen) -> some View {
-        RoundedRectangle(cornerRadius: 8)
+        let screenshotContent = RoundedRectangle(cornerRadius: 8)
             .fill(.white)
             .overlay {
                 if let imageData = screen.screenshotImageData,
@@ -158,6 +163,18 @@ struct CanvasView: View {
             .onDrop(of: [.fileURL], isTargeted: nil) { providers in
                 handleDrop(providers: providers)
             }
+
+        if screen.showDeviceFrame, let device = state.selectedDevice {
+            DeviceFrameView(
+                category: device.category,
+                screenWidth: Double(device.portraitWidth) * zoomScale * 0.15 * 0.7,
+                screenHeight: Double(device.portraitHeight) * zoomScale * 0.15 * 0.7
+            ) {
+                screenshotContent
+            }
+        } else {
+            screenshotContent
+        }
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -214,8 +231,10 @@ struct CanvasView: View {
                 .buttonStyle(.plain)
             }
 
-            if let device = state.selectedDevice {
-                Text("\(device.portraitWidth) × \(device.portraitHeight) px")
+            if let device = state.selectedDevice, let screen = state.selectedScreen {
+                let w = screen.isLandscape ? device.landscapeWidth : device.portraitWidth
+                let h = screen.isLandscape ? device.landscapeHeight : device.portraitHeight
+                Text("\(w) × \(h) px")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }

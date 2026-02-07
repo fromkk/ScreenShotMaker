@@ -1,10 +1,15 @@
 import SwiftUI
+import AppKit
 import UniformTypeIdentifiers
 
 struct PropertiesPanelView: View {
     @Bindable var state: ProjectState
     @State private var imageLoadError: String?
     @State private var showImageLoadError = false
+
+    private var availableFontFamilies: [String] {
+        NSFontManager.shared.availableFontFamilies.sorted()
+    }
 
     private var selectedScreenBinding: Binding<Screen>? {
         guard let id = state.selectedScreenID,
@@ -42,15 +47,23 @@ struct PropertiesPanelView: View {
 
     private func layoutSection(screen: Binding<Screen>) -> some View {
         PropertySection(title: "Layout") {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach(LayoutPreset.allCases) { preset in
-                    LayoutPresetButton(
-                        preset: preset,
-                        isSelected: screen.wrappedValue.layoutPreset == preset
-                    ) {
-                        screen.wrappedValue.layoutPreset = preset
+            VStack(alignment: .leading, spacing: 10) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach(LayoutPreset.allCases) { preset in
+                        LayoutPresetButton(
+                            preset: preset,
+                            isSelected: screen.wrappedValue.layoutPreset == preset
+                        ) {
+                            screen.wrappedValue.layoutPreset = preset
+                        }
                     }
                 }
+
+                Picker("Orientation", selection: screen.isLandscape) {
+                    Label("Portrait", systemImage: "rectangle.portrait").tag(false)
+                    Label("Landscape", systemImage: "rectangle").tag(true)
+                }
+                .pickerStyle(.segmented)
             }
         }
     }
@@ -123,9 +136,15 @@ struct PropertiesPanelView: View {
 
                 HStack(spacing: 8) {
                     PropertyField(label: "Font") {
-                        TextField("Font", text: screen.fontFamily)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 12))
+                        Picker("", selection: screen.fontFamily) {
+                            ForEach(availableFontFamilies, id: \.self) { family in
+                                Text(family)
+                                    .font(.custom(family, size: 12))
+                                    .tag(family)
+                            }
+                        }
+                        .labelsHidden()
+                        .font(.system(size: 12))
                     }
 
                     PropertyField(label: "Size") {
@@ -138,13 +157,12 @@ struct PropertiesPanelView: View {
 
                 PropertyField(label: "Color") {
                     HStack(spacing: 6) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color(hex: screen.wrappedValue.textColorHex))
-                            .frame(width: 24, height: 24)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .strokeBorder(Color(nsColor: .separatorColor))
-                            )
+                        ColorPicker("", selection: Binding(
+                            get: { Color(hex: screen.wrappedValue.textColorHex) },
+                            set: { screen.wrappedValue.textColorHex = $0.toHex() }
+                        ))
+                        .labelsHidden()
+                        .frame(width: 24, height: 24)
                         TextField("Hex", text: screen.textColorHex)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 11, design: .monospaced))
@@ -237,13 +255,12 @@ struct PropertiesPanelView: View {
     private func colorField(label: String, hex: String, onChange: @escaping (String) -> Void) -> some View {
         PropertyField(label: label) {
             HStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(hex: hex))
-                    .frame(width: 18, height: 18)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .strokeBorder(Color(nsColor: .separatorColor))
-                    )
+                ColorPicker("", selection: Binding(
+                    get: { Color(hex: hex) },
+                    set: { onChange($0.toHex()) }
+                ))
+                .labelsHidden()
+                .frame(width: 18, height: 18)
                 TextField("Hex", text: Binding(
                     get: { hex },
                     set: { onChange($0) }

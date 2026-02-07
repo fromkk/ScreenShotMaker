@@ -137,4 +137,44 @@ struct ScreenTests {
         #expect(decoded.text(for: "fr").title == "Bonjour")
         #expect(decoded.text(for: "fr").subtitle == "Monde")
     }
+
+    // MARK: - Landscape Tests
+
+    @Test("Screen defaults to portrait")
+    func testScreenDefaultPortrait() {
+        let screen = Screen()
+        #expect(screen.isLandscape == false)
+    }
+
+    @Test("Screen landscape encodes and decodes")
+    func testScreenLandscapeCodable() throws {
+        var screen = Screen(name: "Landscape Test")
+        screen.isLandscape = true
+
+        let data = try JSONEncoder().encode(screen)
+        let decoded = try JSONDecoder().decode(Screen.self, from: data)
+
+        #expect(decoded.isLandscape == true)
+    }
+
+    @Test("Screen decodes legacy format without isLandscape")
+    func testLegacyFormatWithoutLandscape() throws {
+        let legacyJSON = """
+        {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "name": "Screen 1",
+            "layoutPreset": "textTop",
+            "title": "Title",
+            "subtitle": "Sub",
+            "background": {"solidColor": {"_0": {"hex": "#FF0000"}}},
+            "showDeviceFrame": true,
+            "fontFamily": "SF Pro Display",
+            "fontSize": 28,
+            "textColorHex": "#FFFFFF"
+        }
+        """
+        let data = Data(legacyJSON.utf8)
+        let screen = try JSONDecoder().decode(Screen.self, from: data)
+        #expect(screen.isLandscape == false)
+    }
 }

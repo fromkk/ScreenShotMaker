@@ -31,4 +31,14 @@ extension Color {
 
         self.init(red: r, green: g, blue: b)
     }
+
+    func toHex() -> String {
+        guard let nsColor = NSColor(self).usingColorSpace(.sRGB) else {
+            return "#000000"
+        }
+        let r = Int(round(nsColor.redComponent * 255))
+        let g = Int(round(nsColor.greenComponent * 255))
+        let b = Int(round(nsColor.blueComponent * 255))
+        return String(format: "#%02X%02X%02X", r, g, b)
+    }
 }

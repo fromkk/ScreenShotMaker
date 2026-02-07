@@ -4,16 +4,30 @@ import UniformTypeIdentifiers
 @main
 struct ScreenShotMakerApp: App {
     @State private var projectState = ProjectState()
+    @State private var showTemplateGallery = false
 
     var body: some Scene {
         WindowGroup {
             ContentView(projectState: projectState)
                 .frame(minWidth: 960, minHeight: 600)
+                .sheet(isPresented: $showTemplateGallery) {
+                    TemplateGalleryView(state: projectState)
+                }
+                .onAppear {
+                    showTemplateGallery = true
+                }
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 1280, height: 800)
         .commands {
             CommandGroup(after: .newItem) {
+                Button("New from Template...") {
+                    showTemplateGallery = true
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+
+                Divider()
+
                 Button("Open...") {
                     openProject()
                 }

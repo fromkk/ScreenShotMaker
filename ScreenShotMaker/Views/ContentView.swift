@@ -20,6 +20,7 @@ struct ContentView: View {
                 LanguagePicker(state: projectState)
                 Spacer()
                 ExportButton(state: projectState)
+                BatchExportButton(state: projectState)
             }
         }
     }
@@ -99,6 +100,57 @@ private struct ExportButton: View {
         } catch {
             exportError = error.localizedDescription
             showExportError = true
+        }
+    }
+}
+
+private struct BatchExportButton: View {
+    let state: ProjectState
+    @State private var showBatchExport = false
+    @State private var progressState = ExportProgressState()
+    @State private var outputDirectory: URL?
+    @State private var exportTask: Task<Void, Never>?
+
+    var body: some View {
+        Button {
+            startBatchExport()
+        } label: {
+            Label("Export All", systemImage: "square.and.arrow.up.on.square")
+        }
+        .disabled(state.project.screens.isEmpty)
+        .sheet(isPresented: $showBatchExport) {
+            ExportProgressView(
+                progressState: progressState,
+                outputDirectory: outputDirectory
+            ) {
+                showBatchExport = false
+                progressState.reset()
+            }
+        }
+    }
+
+    private func startBatchExport() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.prompt = "Export"
+        panel.message = "Choose an output folder for batch export"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        outputDirectory = url
+        progressState.reset()
+        showBatchExport = true
+
+        exportTask = Task {
+            await ExportService.batchExport(
+                project: state.project,
+                devices: state.project.selectedDevices,
+                languages: state.project.languages,
+                format: .png,
+                outputDirectory: url,
+                progressState: progressState
+            )
         }
     }
 }

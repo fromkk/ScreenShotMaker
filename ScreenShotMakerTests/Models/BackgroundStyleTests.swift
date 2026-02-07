@@ -67,4 +67,19 @@ struct BackgroundStyleTests {
         let color = Color(hex: "0000FF")
         let _ = color // 生成成功を確認
     }
+
+    @Test("Color toHex returns valid hex string")
+    func testColorToHex() {
+        let hex = Color(hex: "#FF0000").toHex()
+        #expect(hex.hasPrefix("#"))
+        #expect(hex.count == 7)
+        #expect(hex == "#FF0000")
+    }
+
+    @Test("Color toHex roundtrip")
+    func testColorToHexRoundtrip() {
+        let original = "#00FF00"
+        let hex = Color(hex: original).toHex()
+        #expect(hex == original)
+    }
 }

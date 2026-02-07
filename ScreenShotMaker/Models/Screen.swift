@@ -18,6 +18,7 @@ struct Screen: Identifiable, Hashable {
     var background: BackgroundStyle
     var screenshotImageData: Data?
     var showDeviceFrame: Bool
+    var isLandscape: Bool
     var fontFamily: String
     var fontSize: Double
     var textColorHex: String
@@ -65,6 +66,7 @@ struct Screen: Identifiable, Hashable {
         background: BackgroundStyle = .gradient(startColor: HexColor("#667EEA"), endColor: HexColor("#764BA2")),
         screenshotImageData: Data? = nil,
         showDeviceFrame: Bool = true,
+        isLandscape: Bool = false,
         fontFamily: String = "SF Pro Display",
         fontSize: Double = 28,
         textColorHex: String = "#FFFFFF"
@@ -76,6 +78,7 @@ struct Screen: Identifiable, Hashable {
         self.background = background
         self.screenshotImageData = screenshotImageData
         self.showDeviceFrame = showDeviceFrame
+        self.isLandscape = isLandscape
         self.fontFamily = fontFamily
         self.fontSize = fontSize
         self.textColorHex = textColorHex
@@ -87,7 +90,7 @@ struct Screen: Identifiable, Hashable {
 extension Screen: Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, layoutPreset, localizedTexts, background, screenshotImageData
-        case showDeviceFrame, fontFamily, fontSize, textColorHex
+        case showDeviceFrame, isLandscape, fontFamily, fontSize, textColorHex
         // Legacy keys
         case title, subtitle
     }
@@ -100,6 +103,7 @@ extension Screen: Codable {
         background = try container.decode(BackgroundStyle.self, forKey: .background)
         screenshotImageData = try container.decodeIfPresent(Data.self, forKey: .screenshotImageData)
         showDeviceFrame = try container.decode(Bool.self, forKey: .showDeviceFrame)
+        isLandscape = try container.decodeIfPresent(Bool.self, forKey: .isLandscape) ?? false
         fontFamily = try container.decode(String.self, forKey: .fontFamily)
         fontSize = try container.decode(Double.self, forKey: .fontSize)
         textColorHex = try container.decode(String.self, forKey: .textColorHex)
@@ -123,6 +127,7 @@ extension Screen: Codable {
         try container.encode(background, forKey: .background)
         try container.encodeIfPresent(screenshotImageData, forKey: .screenshotImageData)
         try container.encode(showDeviceFrame, forKey: .showDeviceFrame)
+        try container.encode(isLandscape, forKey: .isLandscape)
         try container.encode(fontFamily, forKey: .fontFamily)
         try container.encode(fontSize, forKey: .fontSize)
         try container.encode(textColorHex, forKey: .textColorHex)
