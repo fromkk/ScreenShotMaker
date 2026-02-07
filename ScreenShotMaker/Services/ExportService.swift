@@ -10,6 +10,7 @@ enum ExportFormat: String, CaseIterable {
 struct ExportableScreenView: View {
     let screen: Screen
     let device: DeviceSize
+    var languageCode: String = "en"
 
     var body: some View {
         backgroundView
@@ -31,8 +32,14 @@ struct ExportableScreenView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-        case .image:
-            Rectangle().fill(Color.gray.opacity(0.3))
+        case .image(let data):
+            if let nsImage = NSImage(data: data) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Rectangle().fill(Color.gray.opacity(0.3))
+            }
         }
     }
 
@@ -85,15 +92,16 @@ struct ExportableScreenView: View {
     }
 
     private var textContent: some View {
-        VStack(spacing: 12) {
-            if !screen.title.isEmpty {
-                Text(screen.title)
+        let localizedText = screen.text(for: languageCode)
+        return VStack(spacing: 12) {
+            if !localizedText.title.isEmpty {
+                Text(localizedText.title)
                     .font(.system(size: screen.fontSize, weight: .bold))
                     .foregroundStyle(Color(hex: screen.textColorHex))
                     .multilineTextAlignment(.center)
             }
-            if !screen.subtitle.isEmpty {
-                Text(screen.subtitle)
+            if !localizedText.subtitle.isEmpty {
+                Text(localizedText.subtitle)
                     .font(.system(size: screen.fontSize * 0.6, weight: .regular))
                     .foregroundStyle(Color(hex: screen.textColorHex).opacity(0.8))
                     .multilineTextAlignment(.center)
@@ -118,8 +126,8 @@ struct ExportableScreenView: View {
 
 @MainActor
 enum ExportService {
-    static func exportScreen(_ screen: Screen, device: DeviceSize, format: ExportFormat) -> Data? {
-        let view = ExportableScreenView(screen: screen, device: device)
+    static func exportScreen(_ screen: Screen, device: DeviceSize, format: ExportFormat, languageCode: String = "en") -> Data? {
+        let view = ExportableScreenView(screen: screen, device: device, languageCode: languageCode)
         let renderer = ImageRenderer(content: view)
         renderer.scale = 1.0
 

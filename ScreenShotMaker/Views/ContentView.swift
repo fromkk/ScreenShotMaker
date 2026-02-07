@@ -87,7 +87,8 @@ private struct ExportButton: View {
         let format: ExportFormat = url.pathExtension.lowercased() == "jpeg" || url.pathExtension.lowercased() == "jpg"
             ? .jpeg : .png
 
-        guard let data = ExportService.exportScreen(screen, device: device, format: format) else {
+        let languageCode = state.selectedLanguage?.code ?? "en"
+        guard let data = ExportService.exportScreen(screen, device: device, format: format, languageCode: languageCode) else {
             exportError = "Failed to render the screen."
             showExportError = true
             return

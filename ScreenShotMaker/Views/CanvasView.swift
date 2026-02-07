@@ -56,8 +56,14 @@ struct CanvasView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-        case .image:
-            Rectangle().fill(Color.gray.opacity(0.3))
+        case .image(let data):
+            if let nsImage = NSImage(data: data) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Rectangle().fill(Color.gray.opacity(0.3))
+            }
         }
     }
 
@@ -110,15 +116,17 @@ struct CanvasView: View {
     }
 
     private func textContent(screen: Screen) -> some View {
-        VStack(spacing: 6) {
-            if !screen.title.isEmpty {
-                Text(screen.title)
+        let langCode = state.selectedLanguage?.code ?? "en"
+        let localizedText = screen.text(for: langCode)
+        return VStack(spacing: 6) {
+            if !localizedText.title.isEmpty {
+                Text(localizedText.title)
                     .font(.system(size: screen.fontSize * zoomScale * 0.4, weight: .bold))
                     .foregroundStyle(Color(hex: screen.textColorHex))
                     .multilineTextAlignment(.center)
             }
-            if !screen.subtitle.isEmpty {
-                Text(screen.subtitle)
+            if !localizedText.subtitle.isEmpty {
+                Text(localizedText.subtitle)
                     .font(.system(size: screen.fontSize * zoomScale * 0.25, weight: .regular))
                     .foregroundStyle(Color(hex: screen.textColorHex).opacity(0.8))
                     .multilineTextAlignment(.center)

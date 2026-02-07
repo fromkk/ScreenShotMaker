@@ -3,7 +3,7 @@ import SwiftUI
 enum BackgroundStyle: Codable, Hashable {
     case solidColor(HexColor)
     case gradient(startColor: HexColor, endColor: HexColor)
-    case image(path: String)
+    case image(data: Data)
 }
 
 struct HexColor: Codable, Hashable {

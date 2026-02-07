@@ -69,4 +69,72 @@ struct ScreenTests {
         #expect(screen.subtitle == "Sub")
         #expect(screen.fontSize == 40)
     }
+
+    // MARK: - Localized Text Tests
+
+    @Test("Screen stores localized texts per language")
+    func testLocalizedTexts() {
+        var screen = Screen(title: "Hello", subtitle: "World")
+        #expect(screen.text(for: "en").title == "Hello")
+        #expect(screen.text(for: "en").subtitle == "World")
+
+        screen.setText(LocalizedText(title: "こんにちは", subtitle: "世界"), for: "ja")
+        #expect(screen.text(for: "ja").title == "こんにちは")
+        #expect(screen.text(for: "ja").subtitle == "世界")
+        // English unchanged
+        #expect(screen.text(for: "en").title == "Hello")
+    }
+
+    @Test("Screen returns empty text for missing language")
+    func testMissingLanguageReturnsEmpty() {
+        let screen = Screen(title: "Hello")
+        let text = screen.text(for: "fr")
+        #expect(text.title == "")
+        #expect(text.subtitle == "")
+    }
+
+    @Test("copyTextToAllLanguages copies to all specified languages")
+    func testCopyToAllLanguages() {
+        var screen = Screen(title: "Hello", subtitle: "World")
+        screen.copyTextToAllLanguages(from: "en", languages: ["en", "ja", "fr"])
+        #expect(screen.text(for: "ja").title == "Hello")
+        #expect(screen.text(for: "fr").title == "Hello")
+    }
+
+    @Test("Screen decodes legacy format without localizedTexts")
+    func testLegacyFormatMigration() throws {
+        let legacyJSON = """
+        {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "name": "Screen 1",
+            "layoutPreset": "textTop",
+            "title": "Legacy Title",
+            "subtitle": "Legacy Sub",
+            "background": {"solidColor": {"_0": {"hex": "#FF0000"}}},
+            "showDeviceFrame": true,
+            "fontFamily": "SF Pro Display",
+            "fontSize": 28,
+            "textColorHex": "#FFFFFF"
+        }
+        """
+        let data = Data(legacyJSON.utf8)
+        let screen = try JSONDecoder().decode(Screen.self, from: data)
+        #expect(screen.title == "Legacy Title")
+        #expect(screen.subtitle == "Legacy Sub")
+        #expect(screen.text(for: "en").title == "Legacy Title")
+    }
+
+    @Test("Screen encodes and decodes localizedTexts correctly")
+    func testLocalizedTextsCodableRoundTrip() throws {
+        var screen = Screen(title: "Hello", subtitle: "World")
+        screen.setText(LocalizedText(title: "Bonjour", subtitle: "Monde"), for: "fr")
+
+        let data = try JSONEncoder().encode(screen)
+        let decoded = try JSONDecoder().decode(Screen.self, from: data)
+
+        #expect(decoded.text(for: "en").title == "Hello")
+        #expect(decoded.text(for: "en").subtitle == "World")
+        #expect(decoded.text(for: "fr").title == "Bonjour")
+        #expect(decoded.text(for: "fr").subtitle == "Monde")
+    }
 }

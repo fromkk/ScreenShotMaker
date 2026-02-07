@@ -37,12 +37,13 @@ struct BackgroundStyleTests {
 
     @Test("image encodes and decodes correctly")
     func testImageCodable() throws {
-        let style = BackgroundStyle.image(path: "test.png")
-        let data = try JSONEncoder().encode(style)
-        let decoded = try JSONDecoder().decode(BackgroundStyle.self, from: data)
+        let imageData = Data([0x89, 0x50, 0x4E, 0x47]) // PNG header bytes
+        let style = BackgroundStyle.image(data: imageData)
+        let encoded = try JSONEncoder().encode(style)
+        let decoded = try JSONDecoder().decode(BackgroundStyle.self, from: encoded)
 
-        if case .image(let path) = decoded {
-            #expect(path == "test.png")
+        if case .image(let decodedData) = decoded {
+            #expect(decodedData == imageData)
         } else {
             Issue.record("Expected image case")
         }

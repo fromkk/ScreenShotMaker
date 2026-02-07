@@ -57,17 +57,66 @@ struct PropertiesPanelView: View {
 
     // MARK: - Text Section
 
+    private var currentLanguageCode: String {
+        state.selectedLanguage?.code ?? "en"
+    }
+
+    private func localizedTitleBinding(screen: Binding<Screen>) -> Binding<String> {
+        Binding(
+            get: { screen.wrappedValue.text(for: currentLanguageCode).title },
+            set: { newValue in
+                var text = screen.wrappedValue.text(for: currentLanguageCode)
+                text.title = newValue
+                screen.wrappedValue.setText(text, for: currentLanguageCode)
+            }
+        )
+    }
+
+    private func localizedSubtitleBinding(screen: Binding<Screen>) -> Binding<String> {
+        Binding(
+            get: { screen.wrappedValue.text(for: currentLanguageCode).subtitle },
+            set: { newValue in
+                var text = screen.wrappedValue.text(for: currentLanguageCode)
+                text.subtitle = newValue
+                screen.wrappedValue.setText(text, for: currentLanguageCode)
+            }
+        )
+    }
+
     private func textSection(screen: Binding<Screen>) -> some View {
         PropertySection(title: "Text") {
             VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(state.selectedLanguage?.displayName ?? "English")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(nsColor: .controlColor), in: RoundedRectangle(cornerRadius: 4))
+
+                    Spacer()
+
+                    Button {
+                        screen.wrappedValue.copyTextToAllLanguages(
+                            from: currentLanguageCode,
+                            languages: state.project.languages.map(\.code)
+                        )
+                    } label: {
+                        Label("Copy to All", systemImage: "doc.on.doc")
+                            .font(.system(size: 10))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
+
                 PropertyField(label: "Title") {
-                    TextField("Enter title", text: screen.title)
+                    TextField("Enter title", text: localizedTitleBinding(screen: screen))
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 12))
                 }
 
                 PropertyField(label: "Subtitle") {
-                    TextField("Enter subtitle", text: screen.subtitle)
+                    TextField("Enter subtitle", text: localizedSubtitleBinding(screen: screen))
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 12))
                 }
@@ -124,7 +173,7 @@ struct PropertiesPanelView: View {
                 switch newIndex {
                 case 0: screen.wrappedValue.background = .solidColor(HexColor("#667EEA"))
                 case 1: screen.wrappedValue.background = .gradient(startColor: HexColor("#667EEA"), endColor: HexColor("#764BA2"))
-                default: screen.wrappedValue.background = .image(path: "")
+                default: screen.wrappedValue.background = .image(data: Data())
                 }
             }
         )) {
@@ -153,12 +202,34 @@ struct PropertiesPanelView: View {
                 }
             }
 
-        case .image:
-            Button {
-                // TODO: Image picker
-            } label: {
-                Label("Choose Image", systemImage: "photo")
-                    .frame(maxWidth: .infinity)
+        case .image(let data):
+            VStack(spacing: 8) {
+                if let nsImage = NSImage(data: data) {
+                    ZStack(alignment: .topTrailing) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxHeight: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                        Button {
+                            screen.wrappedValue.background = .image(data: Data())
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.white, .black.opacity(0.6))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(2)
+                    }
+                }
+
+                Button {
+                    openBackgroundImagePicker(screen: screen)
+                } label: {
+                    Label("Choose Image", systemImage: "photo")
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
     }
@@ -256,6 +327,21 @@ struct PropertiesPanelView: View {
             Button("OK") {}
         } message: {
             Text(imageLoadError ?? "Unknown error")
+        }
+    }
+
+    private func openBackgroundImagePicker(screen: Binding<Screen>) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png, .jpeg]
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                let data = try ImageLoader.loadImage(from: url)
+                screen.wrappedValue.background = .image(data: data)
+            } catch {
+                imageLoadError = error.localizedDescription
+                showImageLoadError = true
+            }
         }
     }
 

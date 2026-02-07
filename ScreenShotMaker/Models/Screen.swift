@@ -1,17 +1,60 @@
 import Foundation
 
-struct Screen: Codable, Identifiable, Hashable {
+struct LocalizedText: Codable, Hashable {
+    var title: String
+    var subtitle: String
+
+    init(title: String = "", subtitle: String = "") {
+        self.title = title
+        self.subtitle = subtitle
+    }
+}
+
+struct Screen: Identifiable, Hashable {
     var id: UUID
     var name: String
     var layoutPreset: LayoutPreset
-    var title: String
-    var subtitle: String
+    var localizedTexts: [String: LocalizedText]
     var background: BackgroundStyle
     var screenshotImageData: Data?
     var showDeviceFrame: Bool
     var fontFamily: String
     var fontSize: Double
     var textColorHex: String
+
+    // Convenience accessors for default language ("en")
+    var title: String {
+        get { localizedTexts["en"]?.title ?? "" }
+        set {
+            var text = localizedTexts["en"] ?? LocalizedText()
+            text.title = newValue
+            localizedTexts["en"] = text
+        }
+    }
+
+    var subtitle: String {
+        get { localizedTexts["en"]?.subtitle ?? "" }
+        set {
+            var text = localizedTexts["en"] ?? LocalizedText()
+            text.subtitle = newValue
+            localizedTexts["en"] = text
+        }
+    }
+
+    func text(for languageCode: String) -> LocalizedText {
+        localizedTexts[languageCode] ?? LocalizedText()
+    }
+
+    mutating func setText(_ localizedText: LocalizedText, for languageCode: String) {
+        localizedTexts[languageCode] = localizedText
+    }
+
+    mutating func copyTextToAllLanguages(from languageCode: String, languages: [String]) {
+        let source = text(for: languageCode)
+        for lang in languages {
+            localizedTexts[lang] = source
+        }
+    }
 
     init(
         id: UUID = UUID(),
@@ -29,13 +72,59 @@ struct Screen: Codable, Identifiable, Hashable {
         self.id = id
         self.name = name
         self.layoutPreset = layoutPreset
-        self.title = title
-        self.subtitle = subtitle
+        self.localizedTexts = ["en": LocalizedText(title: title, subtitle: subtitle)]
         self.background = background
         self.screenshotImageData = screenshotImageData
         self.showDeviceFrame = showDeviceFrame
         self.fontFamily = fontFamily
         self.fontSize = fontSize
         self.textColorHex = textColorHex
+    }
+}
+
+// MARK: - Codable with migration support
+
+extension Screen: Codable {
+    enum CodingKeys: String, CodingKey {
+        case id, name, layoutPreset, localizedTexts, background, screenshotImageData
+        case showDeviceFrame, fontFamily, fontSize, textColorHex
+        // Legacy keys
+        case title, subtitle
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        layoutPreset = try container.decode(LayoutPreset.self, forKey: .layoutPreset)
+        background = try container.decode(BackgroundStyle.self, forKey: .background)
+        screenshotImageData = try container.decodeIfPresent(Data.self, forKey: .screenshotImageData)
+        showDeviceFrame = try container.decode(Bool.self, forKey: .showDeviceFrame)
+        fontFamily = try container.decode(String.self, forKey: .fontFamily)
+        fontSize = try container.decode(Double.self, forKey: .fontSize)
+        textColorHex = try container.decode(String.self, forKey: .textColorHex)
+
+        // Try new format first, fall back to legacy
+        if let texts = try? container.decode([String: LocalizedText].self, forKey: .localizedTexts) {
+            localizedTexts = texts
+        } else {
+            let legacyTitle = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
+            let legacySubtitle = try container.decodeIfPresent(String.self, forKey: .subtitle) ?? ""
+            localizedTexts = ["en": LocalizedText(title: legacyTitle, subtitle: legacySubtitle)]
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(layoutPreset, forKey: .layoutPreset)
+        try container.encode(localizedTexts, forKey: .localizedTexts)
+        try container.encode(background, forKey: .background)
+        try container.encodeIfPresent(screenshotImageData, forKey: .screenshotImageData)
+        try container.encode(showDeviceFrame, forKey: .showDeviceFrame)
+        try container.encode(fontFamily, forKey: .fontFamily)
+        try container.encode(fontSize, forKey: .fontSize)
+        try container.encode(textColorHex, forKey: .textColorHex)
     }
 }
