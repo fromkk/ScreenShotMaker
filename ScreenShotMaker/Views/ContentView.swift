@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Bindable var projectState: ProjectState
@@ -54,14 +55,50 @@ private struct LanguagePicker: View {
 
 private struct ExportButton: View {
     let state: ProjectState
+    @State private var showExportError = false
+    @State private var exportError: String?
 
     var body: some View {
         Button {
-            // TODO: Export
+            exportCurrentScreen()
         } label: {
             Label("Export", systemImage: "square.and.arrow.up")
         }
         .buttonStyle(.borderedProminent)
+        .disabled(state.selectedScreen == nil || state.selectedDevice == nil)
+        .alert("Export Error", isPresented: $showExportError) {
+            Button("OK") {}
+        } message: {
+            Text(exportError ?? "Unknown error")
+        }
+    }
+
+    private func exportCurrentScreen() {
+        guard let screen = state.selectedScreen,
+              let device = state.selectedDevice else { return }
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png, .jpeg]
+        panel.nameFieldStringValue = screen.name + ".png"
+        panel.canCreateDirectories = true
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        let format: ExportFormat = url.pathExtension.lowercased() == "jpeg" || url.pathExtension.lowercased() == "jpg"
+            ? .jpeg : .png
+
+        guard let data = ExportService.exportScreen(screen, device: device, format: format) else {
+            exportError = "Failed to render the screen."
+            showExportError = true
+            return
+        }
+
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            exportError = error.localizedDescription
+            showExportError = true
+        }
     }
 }
 
