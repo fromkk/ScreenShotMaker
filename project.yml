@@ -34,3 +34,14 @@ targets:
         SWIFT_STRICT_CONCURRENCY: complete
     entitlements:
       path: ScreenShotMaker/ScreenShotMaker.entitlements
+
+  ScreenShotMakerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: ScreenShotMakerTests
+    dependencies:
+      - target: ScreenShotMaker
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
