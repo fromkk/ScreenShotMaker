@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var projectState = ProjectState()
+    @Bindable var projectState: ProjectState
 
     var body: some View {
         HStack(spacing: 0) {
@@ -66,6 +66,6 @@ private struct ExportButton: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(projectState: ProjectState())
         .frame(width: 1200, height: 800)
 }

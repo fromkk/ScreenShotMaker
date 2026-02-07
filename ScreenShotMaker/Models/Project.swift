@@ -53,6 +53,8 @@ final class ProjectState {
     var selectedScreenID: UUID?
     var selectedDeviceIndex: Int = 0
     var selectedLanguageIndex: Int = 0
+    var currentFileURL: URL?
+    var hasUnsavedChanges: Bool = false
 
     var selectedScreen: Screen? {
         get {
