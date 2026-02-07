@@ -1,0 +1,100 @@
+import Foundation
+import SwiftUI
+import Observation
+
+struct ScreenShotProject: Codable {
+    var name: String
+    var screens: [Screen]
+    var selectedDevices: [DeviceSize]
+    var languages: [Language]
+
+    init(
+        name: String = "Untitled Project",
+        screens: [Screen] = [Screen(name: "Screen 1", title: "Your App Title", subtitle: "A brief description")],
+        selectedDevices: [DeviceSize] = [DeviceSize.iPhoneSizes[0]],
+        languages: [Language] = [Language(code: "en", displayName: "English")]
+    ) {
+        self.name = name
+        self.screens = screens
+        self.selectedDevices = selectedDevices
+        self.languages = languages
+    }
+}
+
+struct Language: Codable, Identifiable, Hashable {
+    var id: String { code }
+    let code: String
+    let displayName: String
+}
+
+extension Language {
+    static let supportedLanguages: [Language] = [
+        Language(code: "en", displayName: "English"),
+        Language(code: "ja", displayName: "Japanese"),
+        Language(code: "zh-Hans", displayName: "Chinese (Simplified)"),
+        Language(code: "zh-Hant", displayName: "Chinese (Traditional)"),
+        Language(code: "ko", displayName: "Korean"),
+        Language(code: "fr", displayName: "French"),
+        Language(code: "de", displayName: "German"),
+        Language(code: "es", displayName: "Spanish"),
+        Language(code: "pt-BR", displayName: "Portuguese (Brazil)"),
+        Language(code: "it", displayName: "Italian"),
+        Language(code: "nl", displayName: "Dutch"),
+        Language(code: "ru", displayName: "Russian"),
+        Language(code: "ar", displayName: "Arabic"),
+        Language(code: "th", displayName: "Thai"),
+        Language(code: "vi", displayName: "Vietnamese"),
+    ]
+}
+
+@Observable
+final class ProjectState {
+    var project: ScreenShotProject
+    var selectedScreenID: UUID?
+    var selectedDeviceIndex: Int = 0
+    var selectedLanguageIndex: Int = 0
+
+    var selectedScreen: Screen? {
+        get {
+            guard let id = selectedScreenID else { return project.screens.first }
+            return project.screens.first { $0.id == id }
+        }
+        set {
+            guard let newValue, let index = project.screens.firstIndex(where: { $0.id == newValue.id }) else { return }
+            project.screens[index] = newValue
+        }
+    }
+
+    var selectedDevice: DeviceSize? {
+        guard selectedDeviceIndex < project.selectedDevices.count else { return nil }
+        return project.selectedDevices[selectedDeviceIndex]
+    }
+
+    var selectedLanguage: Language? {
+        guard selectedLanguageIndex < project.languages.count else { return nil }
+        return project.languages[selectedLanguageIndex]
+    }
+
+    init(project: ScreenShotProject = ScreenShotProject()) {
+        self.project = project
+        self.selectedScreenID = project.screens.first?.id
+    }
+
+    func addScreen() {
+        let count = project.screens.count + 1
+        let screen = Screen(name: "Screen \(count)", title: "Title", subtitle: "Subtitle")
+        project.screens.append(screen)
+        selectedScreenID = screen.id
+    }
+
+    func deleteScreen(_ screen: Screen) {
+        project.screens.removeAll { $0.id == screen.id }
+        if selectedScreenID == screen.id {
+            selectedScreenID = project.screens.first?.id
+        }
+    }
+
+    func moveScreen(from source: IndexSet, to destination: Int) {
+        project.screens.move(fromOffsets: source, toOffset: destination)
+    }
+}
