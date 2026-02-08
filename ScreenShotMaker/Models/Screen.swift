@@ -30,11 +30,24 @@ struct DeviceFrameConfig: Codable, Hashable {
     var frameColorHex: String
     var bezelWidthRatio: Double
     var cornerRadiusRatio: Double
+    var showDynamicIsland: Bool
+    var dynamicIslandWidthRatio: Double
+    var dynamicIslandHeightRatio: Double
 
-    init(frameColorHex: String = "#1F1F1F", bezelWidthRatio: Double = 1.0, cornerRadiusRatio: Double = 1.0) {
+    init(
+        frameColorHex: String = "#1F1F1F",
+        bezelWidthRatio: Double = 1.0,
+        cornerRadiusRatio: Double = 1.0,
+        showDynamicIsland: Bool = true,
+        dynamicIslandWidthRatio: Double = 1.0,
+        dynamicIslandHeightRatio: Double = 1.0
+    ) {
         self.frameColorHex = frameColorHex
         self.bezelWidthRatio = bezelWidthRatio
         self.cornerRadiusRatio = cornerRadiusRatio
+        self.showDynamicIsland = showDynamicIsland
+        self.dynamicIslandWidthRatio = dynamicIslandWidthRatio
+        self.dynamicIslandHeightRatio = dynamicIslandHeightRatio
     }
 
     static let `default` = DeviceFrameConfig()

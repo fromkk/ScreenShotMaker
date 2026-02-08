@@ -90,11 +90,14 @@ struct DeviceFrameView<Content: View>: View {
                 .clipShape(RoundedRectangle(cornerRadius: innerCorner))
 
             // Dynamic Island (iPhone only)
-            if spec.hasNotch {
+            if spec.hasNotch && config.showDynamicIsland {
                 VStack {
                     Capsule()
                         .fill(.black)
-                        .frame(width: screenWidth * 0.25, height: screenWidth * 0.03)
+                        .frame(
+                            width: screenWidth * 0.25 * config.dynamicIslandWidthRatio,
+                            height: screenWidth * 0.03 * config.dynamicIslandHeightRatio
+                        )
                         .padding(.top, bezel + screenWidth * 0.015)
                     Spacer()
                 }

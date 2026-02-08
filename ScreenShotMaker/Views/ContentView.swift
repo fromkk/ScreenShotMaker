@@ -197,6 +197,12 @@ private struct LanguageManagerButton: View {
             }
         } else {
             state.project.languages.append(language)
+            // Copy current language text to the new language for all screens
+            let sourceCode = state.selectedLanguage?.code ?? "en"
+            for i in state.project.screens.indices {
+                let sourceText = state.project.screens[i].text(for: sourceCode)
+                state.project.screens[i].setText(sourceText, for: language.code)
+            }
         }
         state.hasUnsavedChanges = true
     }

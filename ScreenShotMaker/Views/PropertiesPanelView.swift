@@ -457,6 +457,35 @@ struct PropertiesPanelView: View {
                         }
                     }
 
+                    if state.selectedDevice?.category == .iPhone {
+                        Divider()
+
+                        Toggle("Show Dynamic Island", isOn: screen.deviceFrameConfig.showDynamicIsland)
+                            .font(.system(size: 12))
+
+                        if screen.wrappedValue.deviceFrameConfig.showDynamicIsland {
+                            PropertyField(label: "Island Width") {
+                                HStack {
+                                    Slider(value: screen.deviceFrameConfig.dynamicIslandWidthRatio, in: 0.1...3.0, step: 0.1)
+                                    Text(String(format: "%.1f×", screen.wrappedValue.deviceFrameConfig.dynamicIslandWidthRatio))
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 30)
+                                }
+                            }
+
+                            PropertyField(label: "Island Height") {
+                                HStack {
+                                    Slider(value: screen.deviceFrameConfig.dynamicIslandHeightRatio, in: 0.1...3.0, step: 0.1)
+                                    Text(String(format: "%.1f×", screen.wrappedValue.deviceFrameConfig.dynamicIslandHeightRatio))
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 30)
+                                }
+                            }
+                        }
+                    }
+
                     Button {
                         screen.wrappedValue.deviceFrameConfig = .default
                     } label: {
