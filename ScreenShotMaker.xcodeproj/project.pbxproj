@@ -244,6 +244,7 @@
 				CODE_SIGN_ENTITLEMENTS = ScreenShotMaker/ScreenShotMaker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K84E4S7G4C;
@@ -274,6 +275,7 @@
 				CODE_SIGN_ENTITLEMENTS = ScreenShotMaker/ScreenShotMaker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				ENABLE_HARDENED_RUNTIME = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K84E4S7G4C;
