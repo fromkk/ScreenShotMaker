@@ -75,6 +75,7 @@
 			buildPhases = (
 				CF3BEA1C5EC6FACF3BD43811 /* Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* Resources */,
+				B8A9C7D6E5F4A3B2C1D0E9F8 /* Update Build Number */,
 			);
 			buildRules = (
 			);
@@ -128,6 +129,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		B8A9C7D6E5F4A3B2C1D0E9F8 /* Update Build Number */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Update Build Number";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Update build number from Git commit count\nif [ -d \"$SRCROOT/.git\" ]; then\n    COMMIT_COUNT=$(git -C \"$SRCROOT\" rev-list --count HEAD 2>/dev/null)\n    \n    if [ -n \"$COMMIT_COUNT\" ]; then\n        # Update Info.plist in the built product\n        INFO_PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n        \n        if [ -f \"$INFO_PLIST\" ]; then\n            /usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $COMMIT_COUNT\" \"$INFO_PLIST\" 2>/dev/null || \\\n            /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string $COMMIT_COUNT\" \"$INFO_PLIST\" 2>/dev/null\n            echo \"✓ Build number updated to: $COMMIT_COUNT\"\n        else\n            echo \"Warning: Info.plist not found at $INFO_PLIST\"\n        fi\n    else\n        echo \"Warning: Could not get commit count from Git\"\n    fi\nelse\n    echo \"Warning: Not a Git repository\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		CF3BEA1C5EC6FACF3BD43811 /* Sources */ = {
