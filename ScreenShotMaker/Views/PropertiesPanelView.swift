@@ -526,10 +526,11 @@ struct PropertiesPanelView: View {
     // MARK: - Screenshot Image Section
 
     private func screenshotImageSection(screen: Binding<Screen>) -> some View {
-        PropertySection(title: "Screenshot Image") {
+        let languageCode = state.selectedLanguage?.code ?? "en"
+        return PropertySection(title: "Screenshot Image") {
             VStack(spacing: 8) {
                 if let category = state.selectedDevice?.category,
-                   let imageData = screen.wrappedValue.screenshotImageData(for: category),
+                   let imageData = screen.wrappedValue.screenshotImageData(for: languageCode, category: category),
                    let nsImage = NSImage(data: imageData) {
                     ZStack(alignment: .topTrailing) {
                         Image(nsImage: nsImage)
@@ -540,7 +541,8 @@ struct PropertiesPanelView: View {
 
                         Button {
                             if let category = state.selectedDevice?.category {
-                                screen.wrappedValue.setScreenshotImageData(nil, for: category)
+                                let languageCode = state.selectedLanguage?.code ?? "en"
+                                screen.wrappedValue.setScreenshotImageData(nil, for: languageCode, category: category)
                             }
                         } label: {
                             Image(systemName: "xmark.circle.fill")
@@ -622,7 +624,8 @@ struct PropertiesPanelView: View {
             do {
                 let data = try ImageLoader.loadImage(from: url)
                 if let category = state.selectedDevice?.category {
-                    screen.wrappedValue.setScreenshotImageData(data, for: category)
+                    let languageCode = state.selectedLanguage?.code ?? "en"
+                    screen.wrappedValue.setScreenshotImageData(data, for: languageCode, category: category)
                 }
             } catch {
                 imageLoadError = error.localizedDescription
@@ -640,7 +643,8 @@ struct PropertiesPanelView: View {
                 do {
                     let imageData = try ImageLoader.loadImage(from: url)
                     if let category = state.selectedDevice?.category {
-                        screen.wrappedValue.setScreenshotImageData(imageData, for: category)
+                        let languageCode = state.selectedLanguage?.code ?? "en"
+                        screen.wrappedValue.setScreenshotImageData(imageData, for: languageCode, category: category)
                     }
                 } catch {
                     imageLoadError = error.localizedDescription

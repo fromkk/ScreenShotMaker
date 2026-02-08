@@ -102,18 +102,39 @@ struct Screen: Identifiable, Hashable {
         localizedTexts[languageCode] = localizedText
     }
 
-    // MARK: - Per-device screenshot image
+    // MARK: - Per-language, per-device screenshot image
 
-    func screenshotImageData(for category: DeviceCategory) -> Data? {
-        screenshotImages[category.rawValue]
+    /// Generate composite key: "languageCode-deviceCategory"
+    private func imageKey(language: String, category: DeviceCategory) -> String {
+        "\(language)-\(category.rawValue)"
     }
 
-    mutating func setScreenshotImageData(_ data: Data?, for category: DeviceCategory) {
+    /// Get screenshot image for specific language and device category
+    func screenshotImageData(for language: String, category: DeviceCategory) -> Data? {
+        let key = imageKey(language: language, category: category)
+        return screenshotImages[key]
+    }
+
+    /// Set screenshot image for specific language and device category
+    mutating func setScreenshotImageData(_ data: Data?, for language: String, category: DeviceCategory) {
+        let key = imageKey(language: language, category: category)
         if let data {
-            screenshotImages[category.rawValue] = data
+            screenshotImages[key] = data
         } else {
-            screenshotImages.removeValue(forKey: category.rawValue)
+            screenshotImages.removeValue(forKey: key)
         }
+    }
+
+    /// Legacy method for backward compatibility (device only)
+    @available(*, deprecated, message: "Use screenshotImageData(for:category:) with language code")
+    func screenshotImageData(for category: DeviceCategory) -> Data? {
+        screenshotImageData(for: "en", category: category)
+    }
+
+    /// Legacy method for backward compatibility (device only)
+    @available(*, deprecated, message: "Use setScreenshotImageData(_:for:category:) with language code")
+    mutating func setScreenshotImageData(_ data: Data?, for category: DeviceCategory) {
+        setScreenshotImageData(data, for: "en", category: category)
     }
 
     // Legacy convenience accessor (defaults to iPhone)
@@ -188,11 +209,25 @@ extension Screen: Codable {
         name = try container.decode(String.self, forKey: .name)
         layoutPreset = try container.decode(LayoutPreset.self, forKey: .layoutPreset)
         background = try container.decode(BackgroundStyle.self, forKey: .background)
-        // Try new format first, fall back to legacy single image
+        
+        // Migration path for screenshot images:
+        // 1. Try new format (language-device keys)
+        // 2. Fall back to device-only keys (migrate to "en-device")
+        // 3. Fall back to legacy single image (migrate to "en-iPhone")
         if let images = try container.decodeIfPresent([String: Data].self, forKey: .screenshotImages) {
-            screenshotImages = images
+            screenshotImages = [:]
+            for (key, value) in images {
+                if key.contains("-") {
+                    // Already in new format: "en-iPhone"
+                    screenshotImages[key] = value
+                } else {
+                    // Old format (device only): "iPhone" → "en-iPhone"
+                    screenshotImages["en-\(key)"] = value
+                }
+            }
         } else if let legacyData = try container.decodeIfPresent(Data.self, forKey: .screenshotImageData) {
-            screenshotImages = ["iPhone": legacyData]
+            // Very old format (single image) → "en-iPhone"
+            screenshotImages = ["en-iPhone": legacyData]
         } else {
             screenshotImages = [:]
         }

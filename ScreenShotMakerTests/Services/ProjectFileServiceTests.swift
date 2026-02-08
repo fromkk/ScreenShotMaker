@@ -47,7 +47,7 @@ struct ProjectFileServiceTests {
 
         let imageData = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
         var screen = Screen(name: "Screen 1", title: "T", subtitle: "S")
-        screen.screenshotImageData = imageData
+        screen.setScreenshotImageData(imageData, for: "en", category: .iPhone)
 
         let project = ScreenShotProject(
             name: "Image Project",
@@ -57,7 +57,7 @@ struct ProjectFileServiceTests {
         try ProjectFileService.save(project, to: url)
         let loaded = try ProjectFileService.load(from: url)
 
-        #expect(loaded.screens[0].screenshotImageData == imageData)
+        #expect(loaded.screens[0].screenshotImageData(for: "en", category: .iPhone) == imageData)
     }
 
     @Test("Save and load preserves multiple screens")

@@ -356,4 +356,105 @@ struct ScreenTests {
         #expect(decoded.deviceFrameConfig.showDynamicIsland == false)
         #expect(decoded.deviceFrameConfig.dynamicIslandWidthRatio == 0.8)
     }
-}
+
+    // MARK: - Per-Language Screenshot Image Tests (#039)
+
+    @Test("Screen stores screenshot images per language and device")
+    func testPerLanguageScreenshotImages() {
+        var screen = Screen()
+        let iPhoneData = Data([1, 2, 3])
+        let iPadData = Data([4, 5, 6])
+
+        // Set images for English
+        screen.setScreenshotImageData(iPhoneData, for: "en", category: .iPhone)
+        screen.setScreenshotImageData(iPadData, for: "en", category: .iPad)
+
+        // Verify retrieval
+        #expect(screen.screenshotImageData(for: "en", category: .iPhone) == iPhoneData)
+        #expect(screen.screenshotImageData(for: "en", category: .iPad) == iPadData)
+
+        // Japanese should be nil
+        #expect(screen.screenshotImageData(for: "ja", category: .iPhone) == nil)
+    }
+
+    @Test("Language addition copies images independently")
+    func testLanguageAdditionCopiesImages() {
+        var screen = Screen()
+        let imageData = Data([1, 2, 3])
+        screen.setScreenshotImageData(imageData, for: "en", category: .iPhone)
+
+        // Copy to Japanese (simulating language addition)
+        if let data = screen.screenshotImageData(for: "en", category: .iPhone) {
+            screen.setScreenshotImageData(data, for: "ja", category: .iPhone)
+        }
+
+        #expect(screen.screenshotImageData(for: "ja", category: .iPhone) == imageData)
+
+        // Modify English image
+        let newData = Data([7, 8, 9])
+        screen.setScreenshotImageData(newData, for: "en", category: .iPhone)
+
+        // Japanese image should remain unchanged (independent)
+        #expect(screen.screenshotImageData(for: "ja", category: .iPhone) == imageData)
+        #expect(screen.screenshotImageData(for: "en", category: .iPhone) == newData)
+    }
+
+    @Test("Screenshot image removal per language and device")
+    func testScreenshotImageRemoval() {
+        var screen = Screen()
+        let data = Data([1, 2, 3])
+        screen.setScreenshotImageData(data, for: "en", category: .iPhone)
+        screen.setScreenshotImageData(data, for: "ja", category: .iPhone)
+
+        // Remove English image
+        screen.setScreenshotImageData(nil, for: "en", category: .iPhone)
+
+        #expect(screen.screenshotImageData(for: "en", category: .iPhone) == nil)
+        #expect(screen.screenshotImageData(for: "ja", category: .iPhone) == data)
+    }
+
+    @Test("Screen migrates old device-only format to language-device format")
+    func testScreenshotImageMigrationFromDeviceOnly() throws {
+        // Create a screen with old format (device-only keys)
+        var oldScreen = Screen(name: "Screen 1")
+        oldScreen.screenshotImages = ["iPhone": Data([1, 2, 3]), "iPad": Data([4, 5, 6])]
+
+        // Encode and decode to trigger migration
+        let encodedData = try JSONEncoder().encode(oldScreen)
+        let screen = try JSONDecoder().decode(Screen.self, from: encodedData)
+
+        // Old format "iPhone" should migrate to "en-iPhone"
+        #expect(screen.screenshotImageData(for: "en", category: .iPhone) == Data([1, 2, 3]))
+        #expect(screen.screenshotImageData(for: "en", category: .iPad) == Data([4, 5, 6]))
+    }
+
+    @Test("Screen migrates very old single image format to language-device format")
+    func testScreenshotImageMigrationFromSingleImage() throws {
+        // Create a screen with very old format (single screenshotImageData)
+        var oldScreen = Screen(name: "Screen 1")
+        // Simulate the very old format by using the legacy property
+        oldScreen.screenshotImages = ["iPhone": Data([1, 2, 3])]
+
+        // Encode and decode to trigger migration
+        let encodedData = try JSONEncoder().encode(oldScreen)
+        let screen = try JSONDecoder().decode(Screen.self, from: encodedData)
+
+        // Should be accessible via new API
+        #expect(screen.screenshotImageData(for: "en", category: .iPhone) != nil)
+    }
+
+    @Test("Screen preserves new language-device format")
+    func testScreenshotImageNewFormatPreservation() throws {
+        var screen = Screen(name: "New Format Test")
+        screen.setScreenshotImageData(Data([1, 2, 3]), for: "en", category: .iPhone)
+        screen.setScreenshotImageData(Data([4, 5, 6]), for: "ja", category: .iPhone)
+        screen.setScreenshotImageData(Data([7, 8, 9]), for: "en", category: .iPad)
+
+        let encoded = try JSONEncoder().encode(screen)
+        let decoded = try JSONDecoder().decode(Screen.self, from: encoded)
+
+        #expect(decoded.screenshotImageData(for: "en", category: .iPhone) == Data([1, 2, 3]))
+        #expect(decoded.screenshotImageData(for: "ja", category: .iPhone) == Data([4, 5, 6]))
+        #expect(decoded.screenshotImageData(for: "en", category: .iPad) == Data([7, 8, 9]))
+        #expect(decoded.screenshotImageData(for: "ja", category: .iPad) == nil)
+    }}

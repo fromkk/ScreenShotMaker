@@ -202,6 +202,13 @@ private struct LanguageManagerButton: View {
             for i in state.project.screens.indices {
                 let sourceText = state.project.screens[i].text(for: sourceCode)
                 state.project.screens[i].setText(sourceText, for: language.code)
+                
+                // Copy screenshot images for all selected devices
+                for device in state.project.selectedDevices {
+                    if let imageData = state.project.screens[i].screenshotImageData(for: sourceCode, category: device.category) {
+                        state.project.screens[i].setScreenshotImageData(imageData, for: language.code, category: device.category)
+                    }
+                }
             }
         }
         state.hasUnsavedChanges = true

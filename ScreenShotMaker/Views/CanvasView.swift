@@ -173,11 +173,12 @@ struct CanvasView: View {
 
     @ViewBuilder
     private func screenshotPlaceholder(screen: Screen) -> some View {
+        let languageCode = state.selectedLanguage?.code ?? "en"
         let screenshotContent = RoundedRectangle(cornerRadius: 8)
             .fill(.white)
             .overlay {
                 if let device = state.selectedDevice,
-                   let imageData = screen.screenshotImageData(for: device.category),
+                   let imageData = screen.screenshotImageData(for: languageCode, category: device.category),
                    let nsImage = NSImage(data: imageData) {
                     Image(nsImage: nsImage)
                         .resizable()
@@ -223,7 +224,8 @@ struct CanvasView: View {
                 do {
                     let imageData = try ImageLoader.loadImage(from: url)
                     if let category = state.selectedDevice?.category {
-                        state.selectedScreen?.setScreenshotImageData(imageData, for: category)
+                        let languageCode = state.selectedLanguage?.code ?? "en"
+                        state.selectedScreen?.setScreenshotImageData(imageData, for: languageCode, category: category)
                     }
                 } catch {
                     imageLoadError = error.localizedDescription

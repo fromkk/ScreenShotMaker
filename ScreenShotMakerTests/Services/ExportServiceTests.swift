@@ -60,7 +60,7 @@ struct ExportServiceTests {
     func testExportWithScreenshotImage() {
         var screen = testScreen
         // Minimal PNG data
-        screen.screenshotImageData = Data([
+        let pngData = Data([
             0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
             0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
             0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
@@ -71,6 +71,7 @@ struct ExportServiceTests {
             0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
             0x44, 0xAE, 0x42, 0x60, 0x82,
         ])
+        screen.setScreenshotImageData(pngData, for: "en", category: testDevice.category)
         let data = ExportService.exportScreen(screen, device: testDevice, format: .png)
         #expect(data != nil)
     }
