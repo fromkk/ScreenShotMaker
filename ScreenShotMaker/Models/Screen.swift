@@ -64,7 +64,7 @@ struct Screen: Identifiable, Hashable {
     var layoutPreset: LayoutPreset
     var localizedTexts: [String: LocalizedText]
     var background: BackgroundStyle
-    var screenshotImageData: Data?
+    var screenshotImages: [String: Data]
     var showDeviceFrame: Bool
     var isLandscape: Bool
     var fontFamily: String
@@ -102,6 +102,32 @@ struct Screen: Identifiable, Hashable {
         localizedTexts[languageCode] = localizedText
     }
 
+    // MARK: - Per-device screenshot image
+
+    func screenshotImageData(for category: DeviceCategory) -> Data? {
+        screenshotImages[category.rawValue]
+    }
+
+    mutating func setScreenshotImageData(_ data: Data?, for category: DeviceCategory) {
+        if let data {
+            screenshotImages[category.rawValue] = data
+        } else {
+            screenshotImages.removeValue(forKey: category.rawValue)
+        }
+    }
+
+    // Legacy convenience accessor (defaults to iPhone)
+    var screenshotImageData: Data? {
+        get { screenshotImages["iPhone"] }
+        set {
+            if let newValue {
+                screenshotImages["iPhone"] = newValue
+            } else {
+                screenshotImages.removeValue(forKey: "iPhone")
+            }
+        }
+    }
+
     mutating func copyTextToAllLanguages(from languageCode: String, languages: [String]) {
         let source = text(for: languageCode)
         for lang in languages {
@@ -116,7 +142,7 @@ struct Screen: Identifiable, Hashable {
         title: String = "",
         subtitle: String = "",
         background: BackgroundStyle = .gradient(startColor: HexColor("#667EEA"), endColor: HexColor("#764BA2")),
-        screenshotImageData: Data? = nil,
+        screenshotImages: [String: Data] = [:],
         showDeviceFrame: Bool = true,
         isLandscape: Bool = false,
         fontFamily: String = "SF Pro Display",
@@ -132,7 +158,7 @@ struct Screen: Identifiable, Hashable {
         self.layoutPreset = layoutPreset
         self.localizedTexts = ["en": LocalizedText(title: title, subtitle: subtitle)]
         self.background = background
-        self.screenshotImageData = screenshotImageData
+        self.screenshotImages = screenshotImages
         self.showDeviceFrame = showDeviceFrame
         self.isLandscape = isLandscape
         self.fontFamily = fontFamily
@@ -149,11 +175,11 @@ struct Screen: Identifiable, Hashable {
 
 extension Screen: Codable {
     enum CodingKeys: String, CodingKey {
-        case id, name, layoutPreset, localizedTexts, background, screenshotImageData
+        case id, name, layoutPreset, localizedTexts, background, screenshotImages
         case showDeviceFrame, isLandscape, fontFamily, fontSize, textColorHex
         case titleStyle, subtitleStyle, deviceFrameConfig, screenshotContentMode
         // Legacy keys
-        case title, subtitle
+        case title, subtitle, screenshotImageData
     }
 
     init(from decoder: Decoder) throws {
@@ -162,7 +188,14 @@ extension Screen: Codable {
         name = try container.decode(String.self, forKey: .name)
         layoutPreset = try container.decode(LayoutPreset.self, forKey: .layoutPreset)
         background = try container.decode(BackgroundStyle.self, forKey: .background)
-        screenshotImageData = try container.decodeIfPresent(Data.self, forKey: .screenshotImageData)
+        // Try new format first, fall back to legacy single image
+        if let images = try container.decodeIfPresent([String: Data].self, forKey: .screenshotImages) {
+            screenshotImages = images
+        } else if let legacyData = try container.decodeIfPresent(Data.self, forKey: .screenshotImageData) {
+            screenshotImages = ["iPhone": legacyData]
+        } else {
+            screenshotImages = [:]
+        }
         showDeviceFrame = try container.decode(Bool.self, forKey: .showDeviceFrame)
         isLandscape = try container.decodeIfPresent(Bool.self, forKey: .isLandscape) ?? false
         fontFamily = try container.decode(String.self, forKey: .fontFamily)
@@ -190,7 +223,9 @@ extension Screen: Codable {
         try container.encode(layoutPreset, forKey: .layoutPreset)
         try container.encode(localizedTexts, forKey: .localizedTexts)
         try container.encode(background, forKey: .background)
-        try container.encodeIfPresent(screenshotImageData, forKey: .screenshotImageData)
+        if !screenshotImages.isEmpty {
+            try container.encode(screenshotImages, forKey: .screenshotImages)
+        }
         try container.encode(showDeviceFrame, forKey: .showDeviceFrame)
         try container.encode(isLandscape, forKey: .isLandscape)
         try container.encode(fontFamily, forKey: .fontFamily)

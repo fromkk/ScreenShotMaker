@@ -132,22 +132,31 @@ struct PropertiesPanelView: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
 
-                    Button {
-                        showTranslatePopover = true
-                    } label: {
-                        if isTranslating {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
+                    if isTranslating {
+                        Button {
+                            cancelTranslation()
+                        } label: {
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 10))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                    } else {
+                        Button {
+                            showTranslatePopover = true
+                        } label: {
                             Label("Translate", systemImage: "character.book.closed")
                                 .font(.system(size: 10))
                         }
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .disabled(isTranslating)
-                    .popover(isPresented: $showTranslatePopover) {
-                        translateLanguagePicker(screen: screen)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .popover(isPresented: $showTranslatePopover) {
+                            translateLanguagePicker(screen: screen)
+                        }
                     }
                 }
 
@@ -228,6 +237,12 @@ struct PropertiesPanelView: View {
         }
         .padding(12)
         .frame(minWidth: 160)
+    }
+
+    private func cancelTranslation() {
+        isTranslating = false
+        translationConfig = nil
+        translationTargetCode = nil
     }
 
     private func startTranslation(targetLanguageCode: String) {
@@ -513,7 +528,8 @@ struct PropertiesPanelView: View {
     private func screenshotImageSection(screen: Binding<Screen>) -> some View {
         PropertySection(title: "Screenshot Image") {
             VStack(spacing: 8) {
-                if let imageData = screen.wrappedValue.screenshotImageData,
+                if let category = state.selectedDevice?.category,
+                   let imageData = screen.wrappedValue.screenshotImageData(for: category),
                    let nsImage = NSImage(data: imageData) {
                     ZStack(alignment: .topTrailing) {
                         Image(nsImage: nsImage)
@@ -523,7 +539,9 @@ struct PropertiesPanelView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8))
 
                         Button {
-                            screen.wrappedValue.screenshotImageData = nil
+                            if let category = state.selectedDevice?.category {
+                                screen.wrappedValue.setScreenshotImageData(nil, for: category)
+                            }
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))
@@ -597,7 +615,9 @@ struct PropertiesPanelView: View {
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 let data = try ImageLoader.loadImage(from: url)
-                screen.wrappedValue.screenshotImageData = data
+                if let category = state.selectedDevice?.category {
+                    screen.wrappedValue.setScreenshotImageData(data, for: category)
+                }
             } catch {
                 imageLoadError = error.localizedDescription
                 showImageLoadError = true

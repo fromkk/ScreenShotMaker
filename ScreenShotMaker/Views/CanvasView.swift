@@ -176,7 +176,8 @@ struct CanvasView: View {
         let screenshotContent = RoundedRectangle(cornerRadius: 8)
             .fill(.white)
             .overlay {
-                if let imageData = screen.screenshotImageData,
+                if let device = state.selectedDevice,
+                   let imageData = screen.screenshotImageData(for: device.category),
                    let nsImage = NSImage(data: imageData) {
                     Image(nsImage: nsImage)
                         .resizable()
@@ -221,7 +222,9 @@ struct CanvasView: View {
             DispatchQueue.main.async {
                 do {
                     let imageData = try ImageLoader.loadImage(from: url)
-                    state.selectedScreen?.screenshotImageData = imageData
+                    if let category = state.selectedDevice?.category {
+                        state.selectedScreen?.setScreenshotImageData(imageData, for: category)
+                    }
                 } catch {
                     imageLoadError = error.localizedDescription
                     showImageLoadError = true

@@ -134,7 +134,7 @@ struct ExportableScreenView: View {
         let screenshotContent = RoundedRectangle(cornerRadius: 16)
             .fill(.white)
             .overlay {
-                if let imageData = screen.screenshotImageData,
+                if let imageData = screen.screenshotImageData(for: device.category),
                    let nsImage = NSImage(data: imageData) {
                     Image(nsImage: nsImage)
                         .resizable()
