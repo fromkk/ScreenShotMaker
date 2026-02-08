@@ -97,14 +97,16 @@ struct CanvasView: View {
         let ps = previewScale
         let sp = ScalingService.scaledPadding(24, factor: sf) * ps
         let outerPad = ScalingService.scaledPadding(32, factor: sf) * ps
+        let textImageSpacing = screen.textToImageSpacing * sf * ps
 
         switch screen.layoutPreset {
         case .textTop:
-            VStack(spacing: sp) {
-                textContent(screen: screen, device: device)
-                    .padding(.top, ScalingService.scaledPadding(60, factor: sf) * ps)
-                screenshotPlaceholder(screen: screen)
+            VStack(spacing: 0) {
                 Spacer(minLength: 0)
+                VStack(spacing: textImageSpacing) {
+                    textContent(screen: screen, device: device)
+                    screenshotPlaceholder(screen: screen)
+                }
             }
             .padding(outerPad)
 
@@ -122,11 +124,12 @@ struct CanvasView: View {
             }
 
         case .textBottom:
-            VStack(spacing: sp) {
+            VStack(spacing: 0) {
+                VStack(spacing: textImageSpacing) {
+                    screenshotPlaceholder(screen: screen)
+                    textContent(screen: screen, device: device)
+                }
                 Spacer(minLength: 0)
-                screenshotPlaceholder(screen: screen)
-                textContent(screen: screen, device: device)
-                    .padding(.bottom, ScalingService.scaledPadding(60, factor: sf) * ps)
             }
             .padding(outerPad)
 

@@ -77,6 +77,27 @@ struct PropertiesPanelView: View {
                     Label("Landscape", systemImage: "rectangle").tag(true)
                 }
                 .pickerStyle(.segmented)
+                
+                // Text-Image spacing control for Text Top and Text Bottom layouts
+                if screen.wrappedValue.layoutPreset == .textTop || screen.wrappedValue.layoutPreset == .textBottom {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Image-Text Spacing")
+                            .font(.subheadline)
+                        HStack {
+                            Slider(value: Binding(
+                                get: { Double(screen.wrappedValue.textToImageSpacing) },
+                                set: { screen.wrappedValue.textToImageSpacing = CGFloat($0) }
+                            ), in: 0...100, step: 5)
+                            TextField("", value: Binding(
+                                get: { Double(screen.wrappedValue.textToImageSpacing) },
+                                set: { screen.wrappedValue.textToImageSpacing = CGFloat($0) }
+                            ), format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 60)
+                                .labelsHidden()
+                        }
+                    }
+                }
             }
         }
     }

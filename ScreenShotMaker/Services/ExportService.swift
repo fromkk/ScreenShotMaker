@@ -60,13 +60,15 @@ struct ExportableScreenView: View {
     private var layoutContent: some View {
         let sp = ScalingService.scaledPadding(24, factor: sf)
         let outerPad = ScalingService.scaledPadding(32, factor: sf)
+        let textImageSpacing = screen.textToImageSpacing * sf
         switch screen.layoutPreset {
         case .textTop:
-            VStack(spacing: sp) {
-                textContent
-                    .padding(.top, ScalingService.scaledPadding(60, factor: sf))
-                screenshotView
+            VStack(spacing: 0) {
                 Spacer(minLength: 0)
+                VStack(spacing: textImageSpacing) {
+                    textContent
+                    screenshotView
+                }
             }
             .padding(outerPad)
 
@@ -84,11 +86,12 @@ struct ExportableScreenView: View {
             }
 
         case .textBottom:
-            VStack(spacing: sp) {
+            VStack(spacing: 0) {
+                VStack(spacing: textImageSpacing) {
+                    screenshotView
+                    textContent
+                }
                 Spacer(minLength: 0)
-                screenshotView
-                textContent
-                    .padding(.bottom, ScalingService.scaledPadding(60, factor: sf))
             }
             .padding(outerPad)
 

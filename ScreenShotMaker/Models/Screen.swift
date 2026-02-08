@@ -74,6 +74,7 @@ struct Screen: Identifiable, Hashable {
     var subtitleStyle: TextStyle
     var deviceFrameConfig: DeviceFrameConfig
     var screenshotContentMode: ScreenshotContentMode
+    var textToImageSpacing: CGFloat
 
     // Convenience accessors for default language ("en")
     var title: String {
@@ -172,7 +173,8 @@ struct Screen: Identifiable, Hashable {
         titleStyle: TextStyle = TextStyle(isBold: true),
         subtitleStyle: TextStyle = TextStyle(isBold: false),
         deviceFrameConfig: DeviceFrameConfig = .default,
-        screenshotContentMode: ScreenshotContentMode = .fit
+        screenshotContentMode: ScreenshotContentMode = .fit,
+        textToImageSpacing: CGFloat = 20.0
     ) {
         self.id = id
         self.name = name
@@ -189,6 +191,7 @@ struct Screen: Identifiable, Hashable {
         self.subtitleStyle = subtitleStyle
         self.deviceFrameConfig = deviceFrameConfig
         self.screenshotContentMode = screenshotContentMode
+        self.textToImageSpacing = textToImageSpacing
     }
 }
 
@@ -199,6 +202,7 @@ extension Screen: Codable {
         case id, name, layoutPreset, localizedTexts, background, screenshotImages
         case showDeviceFrame, isLandscape, fontFamily, fontSize, textColorHex
         case titleStyle, subtitleStyle, deviceFrameConfig, screenshotContentMode
+        case textToImageSpacing
         // Legacy keys
         case title, subtitle, screenshotImageData
     }
@@ -240,6 +244,7 @@ extension Screen: Codable {
         subtitleStyle = try container.decodeIfPresent(TextStyle.self, forKey: .subtitleStyle) ?? TextStyle(isBold: false)
         deviceFrameConfig = try container.decodeIfPresent(DeviceFrameConfig.self, forKey: .deviceFrameConfig) ?? .default
         screenshotContentMode = try container.decodeIfPresent(ScreenshotContentMode.self, forKey: .screenshotContentMode) ?? .fit
+        textToImageSpacing = try container.decodeIfPresent(CGFloat.self, forKey: .textToImageSpacing) ?? 20.0
 
         // Try new format first, fall back to legacy
         if let texts = try? container.decode([String: LocalizedText].self, forKey: .localizedTexts) {
@@ -270,5 +275,6 @@ extension Screen: Codable {
         try container.encode(subtitleStyle, forKey: .subtitleStyle)
         try container.encode(deviceFrameConfig, forKey: .deviceFrameConfig)
         try container.encode(screenshotContentMode, forKey: .screenshotContentMode)
+        try container.encode(textToImageSpacing, forKey: .textToImageSpacing)
     }
 }

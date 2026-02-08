@@ -692,6 +692,22 @@
         }
       }
     },
+    "Image-Text Spacing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Image-Text Spacing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画像とテキストの間隔"
+          }
+        }
+      }
+    },
     "Landscape" : {
       "localizations" : {
         "en" : {
