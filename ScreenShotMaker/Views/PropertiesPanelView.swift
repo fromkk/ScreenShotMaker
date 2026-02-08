@@ -553,6 +553,9 @@ struct PropertiesPanelView: View {
                     .onTapGesture {
                         openImagePicker(screen: screen)
                     }
+                    .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                        handleScreenshotDrop(providers: providers, screen: screen)
+                    }
                 } else {
                     RoundedRectangle(cornerRadius: 8)
                         .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
@@ -570,6 +573,9 @@ struct PropertiesPanelView: View {
                         }
                         .onTapGesture {
                             openImagePicker(screen: screen)
+                        }
+                        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                            handleScreenshotDrop(providers: providers, screen: screen)
                         }
                 }
 
@@ -623,6 +629,26 @@ struct PropertiesPanelView: View {
                 showImageLoadError = true
             }
         }
+    }
+
+    private func handleScreenshotDrop(providers: [NSItemProvider], screen: Binding<Screen>) -> Bool {
+        guard let provider = providers.first else { return false }
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
+            guard let data = data as? Data,
+                  let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+            DispatchQueue.main.async {
+                do {
+                    let imageData = try ImageLoader.loadImage(from: url)
+                    if let category = state.selectedDevice?.category {
+                        screen.wrappedValue.setScreenshotImageData(imageData, for: category)
+                    }
+                } catch {
+                    imageLoadError = error.localizedDescription
+                    showImageLoadError = true
+                }
+            }
+        }
+        return true
     }
 
     // MARK: - No Selection
