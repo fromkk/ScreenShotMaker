@@ -23,7 +23,7 @@ targets:
       - path: ScreenShotMaker/Resources/Assets.xcassets
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.fromkk.ScreenShotMaker
+        PRODUCT_BUNDLE_IDENTIFIER: me.fromkk.ScreenShotMaker
         PRODUCT_NAME: ScreenShotMaker
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.graphics-design"
         INFOPLIST_KEY_CFBundleDisplayName: ScreenShotMaker
