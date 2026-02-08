@@ -30,17 +30,26 @@ struct CanvasView: View {
         }
     }
 
+    private var previewScale: Double {
+        zoomScale * 0.15
+    }
+
+    private func scaleFactor(for device: DeviceSize) -> CGFloat {
+        guard let ref = ScalingService.referenceDevice(for: device.category) else { return 1.0 }
+        return ScalingService.scaleFactor(from: ref, to: device)
+    }
+
     private func screenshotPreview(screen: Screen, device: DeviceSize) -> some View {
         let w = screen.isLandscape ? device.landscapeWidth : device.portraitWidth
         let h = screen.isLandscape ? device.landscapeHeight : device.portraitHeight
-        let previewWidth = Double(w) * zoomScale * 0.15
-        let previewHeight = Double(h) * zoomScale * 0.15
+        let previewWidth = Double(w) * previewScale
+        let previewHeight = Double(h) * previewScale
 
         return VStack(spacing: 0) {
             backgroundView(for: screen)
                 .frame(width: previewWidth, height: previewHeight)
                 .overlay {
-                    layoutContent(screen: screen)
+                    layoutContent(screen: screen, device: device)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
@@ -70,65 +79,73 @@ struct CanvasView: View {
     }
 
     @ViewBuilder
-    private func layoutContent(screen: Screen) -> some View {
+    private func layoutContent(screen: Screen, device: DeviceSize) -> some View {
+        let sf = scaleFactor(for: device)
+        let ps = previewScale
+        let sp = ScalingService.scaledPadding(24, factor: sf) * ps
+        let outerPad = ScalingService.scaledPadding(32, factor: sf) * ps
+
         switch screen.layoutPreset {
         case .textTop:
-            VStack(spacing: 12) {
-                textContent(screen: screen)
-                    .padding(.top, 30)
+            VStack(spacing: sp) {
+                textContent(screen: screen, device: device)
+                    .padding(.top, ScalingService.scaledPadding(60, factor: sf) * ps)
                 screenshotPlaceholder(screen: screen)
                 Spacer(minLength: 0)
             }
-            .padding(16)
+            .padding(outerPad)
 
         case .textOverlay:
             ZStack {
                 screenshotPlaceholder(screen: screen)
-                    .padding(20)
+                    .padding(ScalingService.scaledPadding(40, factor: sf) * ps)
                 VStack {
                     Spacer()
-                    textContent(screen: screen)
-                        .padding()
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
-                        .padding()
+                    textContent(screen: screen, device: device)
+                        .padding(ScalingService.scaledPadding(16, factor: sf) * ps)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: ScalingService.scaledCornerRadius(16, factor: sf) * ps))
+                        .padding(ScalingService.scaledPadding(16, factor: sf) * ps)
                 }
             }
 
         case .textBottom:
-            VStack(spacing: 12) {
+            VStack(spacing: sp) {
                 Spacer(minLength: 0)
                 screenshotPlaceholder(screen: screen)
-                textContent(screen: screen)
-                    .padding(.bottom, 30)
+                textContent(screen: screen, device: device)
+                    .padding(.bottom, ScalingService.scaledPadding(60, factor: sf) * ps)
             }
-            .padding(16)
+            .padding(outerPad)
 
         case .textOnly:
-            VStack(spacing: 8) {
+            VStack(spacing: ScalingService.scaledPadding(16, factor: sf) * ps) {
                 Spacer()
-                textContent(screen: screen)
+                textContent(screen: screen, device: device)
                 Spacer()
             }
-            .padding(24)
+            .padding(ScalingService.scaledPadding(48, factor: sf) * ps)
 
         case .screenshotOnly:
             screenshotPlaceholder(screen: screen)
-                .padding(20)
+                .padding(ScalingService.scaledPadding(40, factor: sf) * ps)
         }
     }
 
-    private func textContent(screen: Screen) -> some View {
+    private func textContent(screen: Screen, device: DeviceSize) -> some View {
         let langCode = state.selectedLanguage?.code ?? "en"
         let localizedText = screen.text(for: langCode)
-        let titleSize = screen.fontSize * zoomScale * 0.4
-        let subtitleSize = screen.fontSize * zoomScale * 0.25
-        return VStack(spacing: 6) {
+        let sf = scaleFactor(for: device)
+        let ps = previewScale
+        let titleSize = ScalingService.scaledFontSize(screen.fontSize, factor: sf) * ps
+        let subtitleSize = ScalingService.scaledFontSize(screen.fontSize * 0.6, factor: sf) * ps
+        return VStack(spacing: ScalingService.scaledPadding(12, factor: sf) * ps) {
             if !localizedText.title.isEmpty {
                 Text(localizedText.title)
                     .font(.custom(screen.fontFamily, size: titleSize).weight(screen.titleStyle.isBold ? .bold : .regular))
                     .italic(screen.titleStyle.isItalic)
                     .foregroundStyle(Color(hex: screen.textColorHex))
                     .multilineTextAlignment(screen.titleStyle.alignment.textAlignment)
+                    .frame(maxWidth: .infinity, alignment: screen.titleStyle.alignment.alignment)
             }
             if !localizedText.subtitle.isEmpty {
                 Text(localizedText.subtitle)
@@ -136,6 +153,7 @@ struct CanvasView: View {
                     .italic(screen.subtitleStyle.isItalic)
                     .foregroundStyle(Color(hex: screen.textColorHex).opacity(0.8))
                     .multilineTextAlignment(screen.subtitleStyle.alignment.textAlignment)
+                    .frame(maxWidth: .infinity, alignment: screen.subtitleStyle.alignment.alignment)
             }
         }
     }
@@ -167,10 +185,12 @@ struct CanvasView: View {
             }
 
         if screen.showDeviceFrame, let device = state.selectedDevice {
+            let frameW = Double(screen.isLandscape ? device.landscapeWidth : device.portraitWidth) * zoomScale * 0.15 * 0.7
+            let frameH = Double(screen.isLandscape ? device.landscapeHeight : device.portraitHeight) * zoomScale * 0.15 * 0.7
             DeviceFrameView(
                 category: device.category,
-                screenWidth: Double(device.portraitWidth) * zoomScale * 0.15 * 0.7,
-                screenHeight: Double(device.portraitHeight) * zoomScale * 0.15 * 0.7
+                screenWidth: frameW,
+                screenHeight: frameH
             ) {
                 screenshotContent
             }

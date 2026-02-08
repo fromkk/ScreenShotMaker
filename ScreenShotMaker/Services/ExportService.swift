@@ -116,6 +116,7 @@ struct ExportableScreenView: View {
                     .italic(screen.titleStyle.isItalic)
                     .foregroundStyle(Color(hex: screen.textColorHex))
                     .multilineTextAlignment(screen.titleStyle.alignment.textAlignment)
+                    .frame(maxWidth: .infinity, alignment: screen.titleStyle.alignment.alignment)
             }
             if !localizedText.subtitle.isEmpty {
                 Text(localizedText.subtitle)
@@ -123,6 +124,7 @@ struct ExportableScreenView: View {
                     .italic(screen.subtitleStyle.isItalic)
                     .foregroundStyle(Color(hex: screen.textColorHex).opacity(0.8))
                     .multilineTextAlignment(screen.subtitleStyle.alignment.textAlignment)
+                    .frame(maxWidth: .infinity, alignment: screen.subtitleStyle.alignment.alignment)
             }
         }
     }
@@ -142,8 +144,8 @@ struct ExportableScreenView: View {
             }
 
         if screen.showDeviceFrame {
-            let screenW = CGFloat(device.portraitWidth) * 0.7
-            let screenH = CGFloat(device.portraitHeight) * 0.7
+            let screenW = CGFloat(screen.isLandscape ? device.landscapeWidth : device.portraitWidth) * 0.7
+            let screenH = CGFloat(screen.isLandscape ? device.landscapeHeight : device.portraitHeight) * 0.7
             DeviceFrameView(
                 category: device.category,
                 screenWidth: screenW,

@@ -51,4 +51,20 @@ extension TextStyle.TextStyleAlignment {
         case .trailing: .trailing
         }
     }
+
+    var horizontalAlignment: HorizontalAlignment {
+        switch self {
+        case .leading: .leading
+        case .center: .center
+        case .trailing: .trailing
+        }
+    }
+
+    var alignment: Alignment {
+        switch self {
+        case .leading: .leading
+        case .center: .center
+        case .trailing: .trailing
+        }
+    }
 }

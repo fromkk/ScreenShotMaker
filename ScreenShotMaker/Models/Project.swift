@@ -11,7 +11,7 @@ struct ScreenShotProject: Codable {
     init(
         name: String = "Untitled Project",
         screens: [Screen] = [Screen(name: "Screen 1", title: "Your App Title", subtitle: "A brief description")],
-        selectedDevices: [DeviceSize] = [DeviceSize.iPhoneSizes[0]],
+        selectedDevices: [DeviceSize] = [DeviceSize.iPhoneSizes[0], DeviceSize.iPhoneSizes[2], DeviceSize.iPadSizes[0]],
         languages: [Language] = [Language(code: "en", displayName: "English")]
     ) {
         self.name = name

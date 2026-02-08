@@ -53,9 +53,10 @@ extension DeviceSize {
     static let allSizes: [DeviceSize] = iPhoneSizes + iPadSizes + macSizes + watchSizes + tvSizes + visionProSizes
 
     static let iPhoneSizes: [DeviceSize] = [
-        DeviceSize(name: "iPhone 6.9\"", category: .iPhone, displaySize: "6.9\"", portraitWidth: 1260, portraitHeight: 2736),
+        DeviceSize(name: "iPhone 6.9\"", category: .iPhone, displaySize: "6.9\"", portraitWidth: 1320, portraitHeight: 2868),
+        DeviceSize(name: "iPhone 6.7\"", category: .iPhone, displaySize: "6.7\"", portraitWidth: 1290, portraitHeight: 2796),
         DeviceSize(name: "iPhone 6.5\"", category: .iPhone, displaySize: "6.5\"", portraitWidth: 1284, portraitHeight: 2778),
-        DeviceSize(name: "iPhone 6.3\"", category: .iPhone, displaySize: "6.3\"", portraitWidth: 1179, portraitHeight: 2556),
+        DeviceSize(name: "iPhone 6.3\"", category: .iPhone, displaySize: "6.3\"", portraitWidth: 1206, portraitHeight: 2622),
         DeviceSize(name: "iPhone 6.1\"", category: .iPhone, displaySize: "6.1\"", portraitWidth: 1170, portraitHeight: 2532),
         DeviceSize(name: "iPhone 5.5\"", category: .iPhone, displaySize: "5.5\"", portraitWidth: 1242, portraitHeight: 2208),
         DeviceSize(name: "iPhone 4.7\"", category: .iPhone, displaySize: "4.7\"", portraitWidth: 750, portraitHeight: 1334),
@@ -66,7 +67,7 @@ extension DeviceSize {
     static let iPadSizes: [DeviceSize] = [
         DeviceSize(name: "iPad 13\"", category: .iPad, displaySize: "13\"", portraitWidth: 2064, portraitHeight: 2752),
         DeviceSize(name: "iPad 12.9\"", category: .iPad, displaySize: "12.9\"", portraitWidth: 2048, portraitHeight: 2732),
-        DeviceSize(name: "iPad 11\"", category: .iPad, displaySize: "11\"", portraitWidth: 1488, portraitHeight: 2266),
+        DeviceSize(name: "iPad 11\"", category: .iPad, displaySize: "11\"", portraitWidth: 1668, portraitHeight: 2420),
         DeviceSize(name: "iPad 10.5\"", category: .iPad, displaySize: "10.5\"", portraitWidth: 1668, portraitHeight: 2224),
         DeviceSize(name: "iPad 9.7\"", category: .iPad, displaySize: "9.7\"", portraitWidth: 1536, portraitHeight: 2048),
     ]

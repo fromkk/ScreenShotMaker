@@ -18,7 +18,9 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
                 DevicePicker(state: projectState)
+                DeviceManagerButton(state: projectState)
                 LanguagePicker(state: projectState)
+                LanguageManagerButton(state: projectState)
                 Spacer()
                 ExportButton(state: projectState)
                 BatchExportButton(state: projectState)
@@ -58,6 +60,134 @@ private struct LanguagePicker: View {
             }
         }
         .frame(maxWidth: 150)
+    }
+}
+
+private struct DeviceManagerButton: View {
+    @Bindable var state: ProjectState
+    @State private var showPopover = false
+
+    var body: some View {
+        Button {
+            showPopover = true
+        } label: {
+            Image(systemName: "plus.circle")
+        }
+        .popover(isPresented: $showPopover) {
+            deviceManagerPopover
+        }
+    }
+
+    private var deviceManagerPopover: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Select Devices")
+                    .font(.system(size: 13, weight: .semibold))
+
+                ForEach(DeviceCategory.allCases) { category in
+                    let devices = DeviceSize.sizes(for: category)
+                    if !devices.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(category.displayName)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.secondary)
+
+                            ForEach(devices) { device in
+                                let isSelected = state.project.selectedDevices.contains(device)
+                                Button {
+                                    toggleDevice(device)
+                                } label: {
+                                    HStack {
+                                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                            .foregroundStyle(isSelected ? .blue : .secondary)
+                                        Text(device.name)
+                                            .font(.system(size: 12))
+                                        Spacer()
+                                        Text(device.sizeDescription)
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(12)
+        }
+        .frame(width: 300)
+        .frame(maxHeight: 400)
+    }
+
+    private func toggleDevice(_ device: DeviceSize) {
+        if let index = state.project.selectedDevices.firstIndex(of: device) {
+            guard state.project.selectedDevices.count > 1 else { return }
+            state.project.selectedDevices.remove(at: index)
+            if state.selectedDeviceIndex >= state.project.selectedDevices.count {
+                state.selectedDeviceIndex = 0
+            }
+        } else {
+            state.project.selectedDevices.append(device)
+        }
+        state.hasUnsavedChanges = true
+    }
+}
+
+private struct LanguageManagerButton: View {
+    @Bindable var state: ProjectState
+    @State private var showPopover = false
+
+    var body: some View {
+        Button {
+            showPopover = true
+        } label: {
+            Image(systemName: "plus.circle")
+        }
+        .popover(isPresented: $showPopover) {
+            languageManagerPopover
+        }
+    }
+
+    private var languageManagerPopover: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Select Languages")
+                .font(.system(size: 13, weight: .semibold))
+
+            ForEach(Language.supportedLanguages) { language in
+                let isSelected = state.project.languages.contains(where: { $0.code == language.code })
+                Button {
+                    toggleLanguage(language)
+                } label: {
+                    HStack {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(isSelected ? .blue : .secondary)
+                        Text(language.displayName)
+                            .font(.system(size: 12))
+                        Spacer()
+                        Text(language.code)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(12)
+        .frame(width: 240)
+    }
+
+    private func toggleLanguage(_ language: Language) {
+        if let index = state.project.languages.firstIndex(where: { $0.code == language.code }) {
+            guard state.project.languages.count > 1 else { return }
+            state.project.languages.remove(at: index)
+            if state.selectedLanguageIndex >= state.project.languages.count {
+                state.selectedLanguageIndex = 0
+            }
+        } else {
+            state.project.languages.append(language)
+        }
+        state.hasUnsavedChanges = true
     }
 }
 

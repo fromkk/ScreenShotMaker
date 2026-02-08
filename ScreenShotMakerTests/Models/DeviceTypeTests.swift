@@ -10,9 +10,9 @@ struct DeviceTypeTests {
         #expect(allSizes.count >= 26)
     }
 
-    @Test("iPhone sizes count is 8")
+    @Test("iPhone sizes count is 9")
     func testIPhoneSizesCount() {
-        #expect(DeviceSize.iPhoneSizes.count == 8)
+        #expect(DeviceSize.iPhoneSizes.count == 9)
     }
 
     @Test("iPad sizes count is 5")
