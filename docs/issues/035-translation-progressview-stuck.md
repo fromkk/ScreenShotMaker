@@ -108,12 +108,12 @@ private func performTranslation(session: TranslationSession) async {
 
 ## 受け入れ基準
 
-- [ ] 同じ言語ペアで連続して翻訳しても ProgressView がスタックしない
-- [ ] 異なる言語ペアで連続して翻訳しても正常に動作する
-- [ ] 翻訳が完了すると ProgressView が消えて Translate ボタンに戻る
-- [ ] 翻訳エラー時も ProgressView が消えてエラーアラートが表示される
-- [ ] title/subtitle が両方空の場合は翻訳をスキップする
-- [ ] 翻訳結果が正しい言語コードに保存される
+- [x] 同じ言語ペアで連続して翻訳しても ProgressView がスタックしない
+- [x] 異なる言語ペアで連続して翻訳しても正常に動作する
+- [x] 翻訳が完了すると ProgressView が消えて Translate ボタンに戻る
+- [x] 翻訳エラー時も ProgressView が消えてエラーアラートが表示される
+- [x] title/subtitle が両方空の場合は翻訳をスキップする
+- [x] 翻訳結果が正しい言語コードに保存される
 
 ## 依存関係
 
@@ -122,3 +122,23 @@ private func performTranslation(session: TranslationSession) async {
 ## 複雑度
 
 S
+
+## 実装完了
+
+**実装日**: 2026-02-08
+
+### 採用した方法
+
+方法Aの変形版: translationIDを導入し、`.id(translationID)` modifierを使用して`.translationTask()`を持つViewを強制的に再作成することで、連続する翻訳リクエストを確実にトリガーする。
+
+### 実装内容
+
+1. `@State private var translationID = UUID()` を追加
+2. `.translationTask()` の後に `.id(translationID)` を追加して View の ID を変更
+3. `startTranslation()` で `translationID = UUID()` を設定して強制的に再トリガー
+
+### 変更ファイル
+
+- [PropertiesPanelView.swift](ScreenShotMaker/Views/PropertiesPanelView.swift)
+
+この実装により、translationIDを更新することでViewのidentityが変わり、`.translationTask()`が再評価されるため、同じ言語ペアでも連続して翻訳が実行できるようになった。

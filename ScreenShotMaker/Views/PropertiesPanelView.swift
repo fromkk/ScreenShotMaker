@@ -13,6 +13,7 @@ struct PropertiesPanelView: View {
     @State private var translationError: String?
     @State private var showTranslationError = false
     @State private var translationTargetCode: String?
+    @State private var translationID = UUID()
 
     private var availableFontFamilies: [String] {
         NSFontManager.shared.availableFontFamilies.sorted()
@@ -47,6 +48,7 @@ struct PropertiesPanelView: View {
         .translationTask(translationConfig) { session in
             await performTranslation(session: session)
         }
+        .id(translationID)  // View の ID を変更して translationTask を強制的に再作成
         .alert("Translation Error", isPresented: $showTranslationError) {
             Button("OK") {}
         } message: {
@@ -248,14 +250,11 @@ struct PropertiesPanelView: View {
     private func startTranslation(targetLanguageCode: String) {
         translationTargetCode = targetLanguageCode
         isTranslating = true
-        // nil にリセットしてから Task で再セットし、SwiftUI の差分検知を確実にする
-        translationConfig = nil
-        Task { @MainActor in
-            translationConfig = TranslationService.configuration(
-                from: currentLanguageCode,
-                to: targetLanguageCode
-            )
-        }
+        translationID = UUID()  // ID を更新して強制的に再トリガー
+        translationConfig = TranslationService.configuration(
+            from: currentLanguageCode,
+            to: targetLanguageCode
+        )
     }
 
     private func performTranslation(session: TranslationSession) async {
