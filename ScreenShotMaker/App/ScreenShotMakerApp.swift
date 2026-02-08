@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct ScreenShotMakerApp: App {
     @State private var projectState = ProjectState()
     @State private var showTemplateGallery = false
+    @AppStorage("showTemplateOnLaunch") private var showTemplateOnLaunch = true
 
     var body: some Scene {
         WindowGroup {
@@ -14,7 +15,9 @@ struct ScreenShotMakerApp: App {
                     TemplateGalleryView(state: projectState)
                 }
                 .onAppear {
-                    showTemplateGallery = true
+                    if showTemplateOnLaunch {
+                        showTemplateGallery = true
+                    }
                 }
         }
         .windowStyle(.titleBar)

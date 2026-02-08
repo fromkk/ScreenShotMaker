@@ -26,6 +26,11 @@ struct TextStyle: Codable, Hashable {
     }
 }
 
+enum ScreenshotContentMode: String, Codable, CaseIterable {
+    case fit
+    case fill
+}
+
 struct DeviceFrameConfig: Codable, Hashable {
     var frameColorHex: String
     var bezelWidthRatio: Double
@@ -68,6 +73,7 @@ struct Screen: Identifiable, Hashable {
     var titleStyle: TextStyle
     var subtitleStyle: TextStyle
     var deviceFrameConfig: DeviceFrameConfig
+    var screenshotContentMode: ScreenshotContentMode
 
     // Convenience accessors for default language ("en")
     var title: String {
@@ -118,7 +124,8 @@ struct Screen: Identifiable, Hashable {
         textColorHex: String = "#FFFFFF",
         titleStyle: TextStyle = TextStyle(isBold: true),
         subtitleStyle: TextStyle = TextStyle(isBold: false),
-        deviceFrameConfig: DeviceFrameConfig = .default
+        deviceFrameConfig: DeviceFrameConfig = .default,
+        screenshotContentMode: ScreenshotContentMode = .fit
     ) {
         self.id = id
         self.name = name
@@ -134,6 +141,7 @@ struct Screen: Identifiable, Hashable {
         self.titleStyle = titleStyle
         self.subtitleStyle = subtitleStyle
         self.deviceFrameConfig = deviceFrameConfig
+        self.screenshotContentMode = screenshotContentMode
     }
 }
 
@@ -143,7 +151,7 @@ extension Screen: Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, layoutPreset, localizedTexts, background, screenshotImageData
         case showDeviceFrame, isLandscape, fontFamily, fontSize, textColorHex
-        case titleStyle, subtitleStyle, deviceFrameConfig
+        case titleStyle, subtitleStyle, deviceFrameConfig, screenshotContentMode
         // Legacy keys
         case title, subtitle
     }
@@ -163,6 +171,7 @@ extension Screen: Codable {
         titleStyle = try container.decodeIfPresent(TextStyle.self, forKey: .titleStyle) ?? TextStyle(isBold: true)
         subtitleStyle = try container.decodeIfPresent(TextStyle.self, forKey: .subtitleStyle) ?? TextStyle(isBold: false)
         deviceFrameConfig = try container.decodeIfPresent(DeviceFrameConfig.self, forKey: .deviceFrameConfig) ?? .default
+        screenshotContentMode = try container.decodeIfPresent(ScreenshotContentMode.self, forKey: .screenshotContentMode) ?? .fit
 
         // Try new format first, fall back to legacy
         if let texts = try? container.decode([String: LocalizedText].self, forKey: .localizedTexts) {
@@ -190,5 +199,6 @@ extension Screen: Codable {
         try container.encode(titleStyle, forKey: .titleStyle)
         try container.encode(subtitleStyle, forKey: .subtitleStyle)
         try container.encode(deviceFrameConfig, forKey: .deviceFrameConfig)
+        try container.encode(screenshotContentMode, forKey: .screenshotContentMode)
     }
 }

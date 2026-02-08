@@ -3,14 +3,17 @@ import SwiftUI
 struct TemplateGalleryView: View {
     let state: ProjectState
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("showTemplateOnLaunch") private var showTemplateOnLaunch = true
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
             templateGrid
+            Divider()
+            footer
         }
-        .frame(width: 680, height: 520)
+        .frame(width: 680, height: 560)
     }
 
     private var header: some View {
@@ -119,6 +122,21 @@ struct TemplateGalleryView: View {
                     .padding(8)
                 }
         }
+    }
+
+    private var footer: some View {
+        HStack {
+            Toggle("Don't show on launch", isOn: Binding(
+                get: { !showTemplateOnLaunch },
+                set: { showTemplateOnLaunch = !$0 }
+            ))
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 
     @ViewBuilder

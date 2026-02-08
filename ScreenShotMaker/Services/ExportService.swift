@@ -138,7 +138,7 @@ struct ExportableScreenView: View {
                    let nsImage = NSImage(data: imageData) {
                     Image(nsImage: nsImage)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
+                        .aspectRatio(contentMode: screen.screenshotContentMode == .fill ? .fill : .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }

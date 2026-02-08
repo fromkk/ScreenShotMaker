@@ -546,6 +546,14 @@ struct PropertiesPanelView: View {
                         }
                 }
 
+                PropertyField(label: "Content Mode") {
+                    Picker("", selection: screen.screenshotContentMode) {
+                        Text("Fit").tag(ScreenshotContentMode.fit)
+                        Text("Fill").tag(ScreenshotContentMode.fill)
+                    }
+                    .pickerStyle(.segmented)
+                }
+
                 Text("PNG or JPEG, max 20MB")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
