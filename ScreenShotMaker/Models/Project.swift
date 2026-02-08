@@ -56,6 +56,25 @@ final class ProjectState {
     var currentFileURL: URL?
     var hasUnsavedChanges: Bool = false
     var undoManager: UndoManager?
+    var zoomScale: Double = 0.5
+
+    func zoomIn() {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            zoomScale = min(3.0, zoomScale + 0.1)
+        }
+    }
+
+    func zoomOut() {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            zoomScale = max(0.1, zoomScale - 0.1)
+        }
+    }
+
+    func zoomReset() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            zoomScale = 1.0
+        }
+    }
 
     var selectedScreen: Screen? {
         get {

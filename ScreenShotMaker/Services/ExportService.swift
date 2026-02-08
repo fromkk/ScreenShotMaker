@@ -149,7 +149,8 @@ struct ExportableScreenView: View {
             DeviceFrameView(
                 category: device.category,
                 screenWidth: screenW,
-                screenHeight: screenH
+                screenHeight: screenH,
+                config: screen.deviceFrameConfig
             ) {
                 screenshotContent
             }

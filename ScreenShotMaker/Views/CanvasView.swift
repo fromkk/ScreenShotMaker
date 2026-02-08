@@ -3,9 +3,13 @@ import UniformTypeIdentifiers
 
 struct CanvasView: View {
     @Bindable var state: ProjectState
-    @State private var zoomScale: Double = 0.5
     @State private var imageLoadError: String?
     @State private var showImageLoadError = false
+    @GestureState private var magnification: CGFloat = 1.0
+
+    private var effectiveZoom: Double {
+        min(3.0, max(0.1, state.zoomScale * magnification))
+    }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -23,6 +27,15 @@ struct CanvasView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor).opacity(0.5))
+        .gesture(
+            MagnifyGesture()
+                .updating($magnification) { value, gestureState, _ in
+                    gestureState = value.magnification
+                }
+                .onEnded { value in
+                    state.zoomScale = min(3.0, max(0.1, state.zoomScale * value.magnification))
+                }
+        )
         .alert("Image Load Error", isPresented: $showImageLoadError) {
             Button("OK") {}
         } message: {
@@ -31,7 +44,7 @@ struct CanvasView: View {
     }
 
     private var previewScale: Double {
-        zoomScale * 0.15
+        effectiveZoom * 0.15
     }
 
     private func scaleFactor(for device: DeviceSize) -> CGFloat {
@@ -185,12 +198,13 @@ struct CanvasView: View {
             }
 
         if screen.showDeviceFrame, let device = state.selectedDevice {
-            let frameW = Double(screen.isLandscape ? device.landscapeWidth : device.portraitWidth) * zoomScale * 0.15 * 0.7
-            let frameH = Double(screen.isLandscape ? device.landscapeHeight : device.portraitHeight) * zoomScale * 0.15 * 0.7
+            let frameW = Double(screen.isLandscape ? device.landscapeWidth : device.portraitWidth) * effectiveZoom * 0.15 * 0.7
+            let frameH = Double(screen.isLandscape ? device.landscapeHeight : device.portraitHeight) * effectiveZoom * 0.15 * 0.7
             DeviceFrameView(
                 category: device.category,
                 screenWidth: frameW,
-                screenHeight: frameH
+                screenHeight: frameH,
+                config: screen.deviceFrameConfig
             ) {
                 screenshotContent
             }
@@ -232,20 +246,26 @@ struct CanvasView: View {
         VStack(spacing: 4) {
             HStack(spacing: 8) {
                 Button {
-                    zoomScale = max(0.2, zoomScale - 0.1)
+                    state.zoomOut()
                 } label: {
                     Image(systemName: "minus")
                         .font(.caption2)
                 }
                 .buttonStyle(.plain)
 
-                Text("\(Int(zoomScale * 100))%")
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 40)
+                Button {
+                    state.zoomReset()
+                } label: {
+                    Text("\(Int(effectiveZoom * 100))%")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40)
+                }
+                .buttonStyle(.plain)
+                .help("Click to reset to 100%")
 
                 Button {
-                    zoomScale = min(2.0, zoomScale + 0.1)
+                    state.zoomIn()
                 } label: {
                     Image(systemName: "plus")
                         .font(.caption2)

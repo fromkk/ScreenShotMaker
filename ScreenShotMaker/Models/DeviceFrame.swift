@@ -10,6 +10,16 @@ struct DeviceFrameSpec {
     var outerScale: CGSize {
         CGSize(width: 1 + bezelRatio * 2, height: 1 + bezelRatio * 2)
     }
+
+    func applying(_ config: DeviceFrameConfig) -> DeviceFrameSpec {
+        DeviceFrameSpec(
+            bezelRatio: bezelRatio * config.bezelWidthRatio,
+            cornerRadiusRatio: cornerRadiusRatio * config.cornerRadiusRatio,
+            frameColor: Color(hex: config.frameColorHex),
+            hasNotch: hasNotch,
+            hasHomeIndicator: hasHomeIndicator
+        )
+    }
 }
 
 extension DeviceCategory {
@@ -49,10 +59,12 @@ struct DeviceFrameView<Content: View>: View {
     let category: DeviceCategory
     let screenWidth: CGFloat
     let screenHeight: CGFloat
+    var config: DeviceFrameConfig = .default
     @ViewBuilder let content: Content
 
     var body: some View {
-        if let spec = category.frameSpec {
+        if let baseSpec = category.frameSpec {
+            let spec = config == .default ? baseSpec : baseSpec.applying(config)
             framedContent(spec: spec)
         } else {
             content

@@ -8,10 +8,6 @@ struct SidebarView: View {
             header
             screenList
         }
-        .background(Color(nsColor: .controlBackgroundColor))
-        .overlay(alignment: .trailing) {
-            Divider()
-        }
     }
 
     private var header: some View {

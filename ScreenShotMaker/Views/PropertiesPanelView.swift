@@ -43,10 +43,6 @@ struct PropertiesPanelView: View {
                 }
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor))
-        .overlay(alignment: .leading) {
-            Divider()
-        }
         .translationTask(translationConfig) { session in
             await performTranslation(session: session)
         }
@@ -422,8 +418,55 @@ struct PropertiesPanelView: View {
 
     private func deviceFrameSection(screen: Binding<Screen>) -> some View {
         PropertySection(title: "Device Frame") {
-            Toggle("Show Device Frame", isOn: screen.showDeviceFrame)
-                .font(.system(size: 12))
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("Show Device Frame", isOn: screen.showDeviceFrame)
+                    .font(.system(size: 12))
+
+                if screen.wrappedValue.showDeviceFrame {
+                    PropertyField(label: "Frame Color") {
+                        HStack(spacing: 6) {
+                            ColorPicker("", selection: Binding(
+                                get: { Color(hex: screen.wrappedValue.deviceFrameConfig.frameColorHex) },
+                                set: { screen.wrappedValue.deviceFrameConfig.frameColorHex = $0.toHex() }
+                            ))
+                            .labelsHidden()
+                            .frame(width: 24, height: 24)
+                            TextField("Hex", text: screen.deviceFrameConfig.frameColorHex)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(size: 11, design: .monospaced))
+                        }
+                    }
+
+                    PropertyField(label: "Bezel Width") {
+                        HStack {
+                            Slider(value: screen.deviceFrameConfig.bezelWidthRatio, in: 0.0...3.0, step: 0.1)
+                            Text(String(format: "%.1f×", screen.wrappedValue.deviceFrameConfig.bezelWidthRatio))
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 30)
+                        }
+                    }
+
+                    PropertyField(label: "Corner Radius") {
+                        HStack {
+                            Slider(value: screen.deviceFrameConfig.cornerRadiusRatio, in: 0.0...3.0, step: 0.1)
+                            Text(String(format: "%.1f×", screen.wrappedValue.deviceFrameConfig.cornerRadiusRatio))
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 30)
+                        }
+                    }
+
+                    Button {
+                        screen.wrappedValue.deviceFrameConfig = .default
+                    } label: {
+                        Label("Reset to Default", systemImage: "arrow.counterclockwise")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 

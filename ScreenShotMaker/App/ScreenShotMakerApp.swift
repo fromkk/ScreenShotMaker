@@ -33,6 +33,22 @@ struct ScreenShotMakerApp: App {
                 }
                 .keyboardShortcut("o", modifiers: .command)
             }
+            CommandMenu("View") {
+                Button("Zoom In") {
+                    projectState.zoomIn()
+                }
+                .keyboardShortcut("+", modifiers: .command)
+
+                Button("Zoom Out") {
+                    projectState.zoomOut()
+                }
+                .keyboardShortcut("-", modifiers: .command)
+
+                Button("Actual Size") {
+                    projectState.zoomReset()
+                }
+                .keyboardShortcut("0", modifiers: .command)
+            }
             CommandGroup(replacing: .saveItem) {
                 Button("Save") {
                     saveProject()

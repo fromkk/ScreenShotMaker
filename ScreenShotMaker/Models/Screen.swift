@@ -26,6 +26,20 @@ struct TextStyle: Codable, Hashable {
     }
 }
 
+struct DeviceFrameConfig: Codable, Hashable {
+    var frameColorHex: String
+    var bezelWidthRatio: Double
+    var cornerRadiusRatio: Double
+
+    init(frameColorHex: String = "#1F1F1F", bezelWidthRatio: Double = 1.0, cornerRadiusRatio: Double = 1.0) {
+        self.frameColorHex = frameColorHex
+        self.bezelWidthRatio = bezelWidthRatio
+        self.cornerRadiusRatio = cornerRadiusRatio
+    }
+
+    static let `default` = DeviceFrameConfig()
+}
+
 struct Screen: Identifiable, Hashable {
     var id: UUID
     var name: String
@@ -40,6 +54,7 @@ struct Screen: Identifiable, Hashable {
     var textColorHex: String
     var titleStyle: TextStyle
     var subtitleStyle: TextStyle
+    var deviceFrameConfig: DeviceFrameConfig
 
     // Convenience accessors for default language ("en")
     var title: String {
@@ -89,7 +104,8 @@ struct Screen: Identifiable, Hashable {
         fontSize: Double = 28,
         textColorHex: String = "#FFFFFF",
         titleStyle: TextStyle = TextStyle(isBold: true),
-        subtitleStyle: TextStyle = TextStyle(isBold: false)
+        subtitleStyle: TextStyle = TextStyle(isBold: false),
+        deviceFrameConfig: DeviceFrameConfig = .default
     ) {
         self.id = id
         self.name = name
@@ -104,6 +120,7 @@ struct Screen: Identifiable, Hashable {
         self.textColorHex = textColorHex
         self.titleStyle = titleStyle
         self.subtitleStyle = subtitleStyle
+        self.deviceFrameConfig = deviceFrameConfig
     }
 }
 
@@ -113,7 +130,7 @@ extension Screen: Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, layoutPreset, localizedTexts, background, screenshotImageData
         case showDeviceFrame, isLandscape, fontFamily, fontSize, textColorHex
-        case titleStyle, subtitleStyle
+        case titleStyle, subtitleStyle, deviceFrameConfig
         // Legacy keys
         case title, subtitle
     }
@@ -132,6 +149,7 @@ extension Screen: Codable {
         textColorHex = try container.decode(String.self, forKey: .textColorHex)
         titleStyle = try container.decodeIfPresent(TextStyle.self, forKey: .titleStyle) ?? TextStyle(isBold: true)
         subtitleStyle = try container.decodeIfPresent(TextStyle.self, forKey: .subtitleStyle) ?? TextStyle(isBold: false)
+        deviceFrameConfig = try container.decodeIfPresent(DeviceFrameConfig.self, forKey: .deviceFrameConfig) ?? .default
 
         // Try new format first, fall back to legacy
         if let texts = try? container.decode([String: LocalizedText].self, forKey: .localizedTexts) {
@@ -158,5 +176,6 @@ extension Screen: Codable {
         try container.encode(textColorHex, forKey: .textColorHex)
         try container.encode(titleStyle, forKey: .titleStyle)
         try container.encode(subtitleStyle, forKey: .subtitleStyle)
+        try container.encode(deviceFrameConfig, forKey: .deviceFrameConfig)
     }
 }

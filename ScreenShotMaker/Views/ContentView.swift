@@ -4,16 +4,18 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Bindable var projectState: ProjectState
     @Environment(\.undoManager) private var undoManager
+    @State private var showInspector = true
 
     var body: some View {
-        HStack(spacing: 0) {
+        NavigationSplitView {
             SidebarView(state: projectState)
-                .frame(width: 240)
-
+                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
+        } detail: {
             CanvasView(state: projectState)
-
-            PropertiesPanelView(state: projectState)
-                .frame(width: 300)
+                .inspector(isPresented: $showInspector) {
+                    PropertiesPanelView(state: projectState)
+                        .inspectorColumnWidth(min: 250, ideal: 300, max: 400)
+                }
         }
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
@@ -24,6 +26,15 @@ struct ContentView: View {
                 Spacer()
                 ExportButton(state: projectState)
                 BatchExportButton(state: projectState)
+
+                Button {
+                    withAnimation {
+                        showInspector.toggle()
+                    }
+                } label: {
+                    Image(systemName: "sidebar.trailing")
+                }
+                .help("Toggle Inspector")
             }
         }
         .onAppear {
