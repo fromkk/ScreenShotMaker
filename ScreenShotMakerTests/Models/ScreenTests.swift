@@ -239,4 +239,121 @@ struct ScreenTests {
         #expect(screen.titleStyle.isBold == true)
         #expect(screen.subtitleStyle.isBold == false)
     }
+
+    // MARK: - ScreenshotContentMode Tests (#031)
+
+    @Test("ScreenshotContentMode defaults to fit")
+    func testScreenshotContentModeDefault() {
+        let screen = Screen()
+        #expect(screen.screenshotContentMode == .fit)
+    }
+
+    @Test("ScreenshotContentMode encodes and decodes correctly")
+    func testScreenshotContentModeCodable() throws {
+        var screen = Screen(name: "ContentMode Test")
+        screen.screenshotContentMode = .fill
+
+        let data = try JSONEncoder().encode(screen)
+        let decoded = try JSONDecoder().decode(Screen.self, from: data)
+
+        #expect(decoded.screenshotContentMode == .fill)
+    }
+
+    @Test("Screen decodes legacy format without screenshotContentMode")
+    func testLegacyFormatWithoutContentMode() throws {
+        let legacyJSON = """
+        {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "name": "Screen 1",
+            "layoutPreset": "textTop",
+            "title": "Title",
+            "subtitle": "Sub",
+            "background": {"solidColor": {"_0": {"hex": "#FF0000"}}},
+            "showDeviceFrame": true,
+            "fontFamily": "SF Pro Display",
+            "fontSize": 28,
+            "textColorHex": "#FFFFFF"
+        }
+        """
+        let data = Data(legacyJSON.utf8)
+        let screen = try JSONDecoder().decode(Screen.self, from: data)
+        #expect(screen.screenshotContentMode == .fit)
+    }
+
+    // MARK: - DeviceFrameConfig Tests (#028)
+
+    @Test("DeviceFrameConfig defaults")
+    func testDeviceFrameConfigDefaults() {
+        let config = DeviceFrameConfig.default
+        #expect(config.frameColorHex == "#1F1F1F")
+        #expect(config.bezelWidthRatio == 1.0)
+        #expect(config.cornerRadiusRatio == 1.0)
+        #expect(config.showDynamicIsland == true)
+        #expect(config.dynamicIslandWidthRatio == 1.0)
+        #expect(config.dynamicIslandHeightRatio == 1.0)
+    }
+
+    @Test("DeviceFrameConfig encodes and decodes correctly")
+    func testDeviceFrameConfigCodable() throws {
+        let config = DeviceFrameConfig(
+            frameColorHex: "#FFFFFF",
+            bezelWidthRatio: 0.5,
+            cornerRadiusRatio: 0.8,
+            showDynamicIsland: false,
+            dynamicIslandWidthRatio: 0.7,
+            dynamicIslandHeightRatio: 0.6
+        )
+
+        let data = try JSONEncoder().encode(config)
+        let decoded = try JSONDecoder().decode(DeviceFrameConfig.self, from: data)
+
+        #expect(decoded.frameColorHex == "#FFFFFF")
+        #expect(decoded.bezelWidthRatio == 0.5)
+        #expect(decoded.cornerRadiusRatio == 0.8)
+        #expect(decoded.showDynamicIsland == false)
+        #expect(decoded.dynamicIslandWidthRatio == 0.7)
+        #expect(decoded.dynamicIslandHeightRatio == 0.6)
+    }
+
+    @Test("Screen decodes legacy format without deviceFrameConfig")
+    func testLegacyFormatWithoutDeviceFrameConfig() throws {
+        let legacyJSON = """
+        {
+            "id": "00000000-0000-0000-0000-000000000005",
+            "name": "Screen 1",
+            "layoutPreset": "textTop",
+            "title": "Title",
+            "subtitle": "Sub",
+            "background": {"solidColor": {"_0": {"hex": "#FF0000"}}},
+            "showDeviceFrame": true,
+            "fontFamily": "SF Pro Display",
+            "fontSize": 28,
+            "textColorHex": "#FFFFFF"
+        }
+        """
+        let data = Data(legacyJSON.utf8)
+        let screen = try JSONDecoder().decode(Screen.self, from: data)
+        #expect(screen.deviceFrameConfig == .default)
+    }
+
+    @Test("DeviceFrameConfig persists through Screen encoding")
+    func testDeviceFrameConfigInScreen() throws {
+        var screen = Screen(name: "Frame Config Test")
+        screen.deviceFrameConfig = DeviceFrameConfig(
+            frameColorHex: "#333333",
+            bezelWidthRatio: 1.5,
+            cornerRadiusRatio: 0.5,
+            showDynamicIsland: false,
+            dynamicIslandWidthRatio: 0.8,
+            dynamicIslandHeightRatio: 0.9
+        )
+
+        let data = try JSONEncoder().encode(screen)
+        let decoded = try JSONDecoder().decode(Screen.self, from: data)
+
+        #expect(decoded.deviceFrameConfig.frameColorHex == "#333333")
+        #expect(decoded.deviceFrameConfig.bezelWidthRatio == 1.5)
+        #expect(decoded.deviceFrameConfig.showDynamicIsland == false)
+        #expect(decoded.deviceFrameConfig.dynamicIslandWidthRatio == 0.8)
+    }
 }

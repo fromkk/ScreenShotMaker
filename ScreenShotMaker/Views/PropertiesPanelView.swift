@@ -12,6 +12,7 @@ struct PropertiesPanelView: View {
     @State private var showTranslatePopover = false
     @State private var translationError: String?
     @State private var showTranslationError = false
+    @State private var translationTargetCode: String?
 
     private var availableFontFamilies: [String] {
         NSFontManager.shared.availableFontFamilies.sorted()
@@ -211,7 +212,7 @@ struct PropertiesPanelView: View {
             ForEach(state.project.languages.filter({ $0.code != currentLanguageCode })) { language in
                 Button {
                     showTranslatePopover = false
-                    startTranslation(screen: screen, targetLanguageCode: language.code)
+                    startTranslation(targetLanguageCode: language.code)
                 } label: {
                     Text(language.displayName)
                         .font(.system(size: 12))
@@ -229,33 +230,43 @@ struct PropertiesPanelView: View {
         .frame(minWidth: 160)
     }
 
-    @State private var translationScreen: Binding<Screen>?
-
-    private func startTranslation(screen: Binding<Screen>, targetLanguageCode: String) {
-        translationScreen = screen
+    private func startTranslation(targetLanguageCode: String) {
+        translationTargetCode = targetLanguageCode
         isTranslating = true
-        translationConfig = TranslationService.configuration(
-            from: currentLanguageCode,
-            to: targetLanguageCode
-        )
+        // nil にリセットしてから Task で再セットし、SwiftUI の差分検知を確実にする
+        translationConfig = nil
+        Task { @MainActor in
+            translationConfig = TranslationService.configuration(
+                from: currentLanguageCode,
+                to: targetLanguageCode
+            )
+        }
     }
 
     private func performTranslation(session: TranslationSession) async {
-        guard let screen = translationScreen else {
+        guard let screen = selectedScreenBinding,
+              let targetCode = translationTargetCode else {
             isTranslating = false
             return
         }
         let sourceText = screen.wrappedValue.text(for: currentLanguageCode)
 
-        do {
-            var requests: [TranslationSession.Request] = []
-            if !sourceText.title.isEmpty {
-                requests.append(TranslationSession.Request(sourceText: sourceText.title, clientIdentifier: "title"))
-            }
-            if !sourceText.subtitle.isEmpty {
-                requests.append(TranslationSession.Request(sourceText: sourceText.subtitle, clientIdentifier: "subtitle"))
-            }
+        var requests: [TranslationSession.Request] = []
+        if !sourceText.title.isEmpty {
+            requests.append(TranslationSession.Request(sourceText: sourceText.title, clientIdentifier: "title"))
+        }
+        if !sourceText.subtitle.isEmpty {
+            requests.append(TranslationSession.Request(sourceText: sourceText.subtitle, clientIdentifier: "subtitle"))
+        }
 
+        guard !requests.isEmpty else {
+            isTranslating = false
+            translationConfig = nil
+            translationTargetCode = nil
+            return
+        }
+
+        do {
             var translatedText = LocalizedText()
             let responses = try await session.translations(from: requests)
             for response in responses {
@@ -266,10 +277,7 @@ struct PropertiesPanelView: View {
                 }
             }
 
-            if let targetLang = translationConfig?.target {
-                let targetCode = targetLang.minimalIdentifier
-                screen.wrappedValue.setText(translatedText, for: targetCode)
-            }
+            screen.wrappedValue.setText(translatedText, for: targetCode)
         } catch {
             translationError = error.localizedDescription
             showTranslationError = true
@@ -277,6 +285,7 @@ struct PropertiesPanelView: View {
 
         isTranslating = false
         translationConfig = nil
+        translationTargetCode = nil
     }
 
     private func textStyleToolbar(style: Binding<TextStyle>, label: String) -> some View {

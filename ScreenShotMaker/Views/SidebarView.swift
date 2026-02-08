@@ -39,6 +39,18 @@ struct SidebarView: View {
                 ScreenRow(screen: screen, isSelected: state.selectedScreenID == screen.id)
                     .tag(screen.id)
                     .contextMenu {
+                        Button("Duplicate") {
+                            state.duplicateScreen(screen)
+                        }
+                        Divider()
+                        Button("Copy") {
+                            state.copyScreen(screen)
+                        }
+                        Button("Paste") {
+                            state.pasteScreen()
+                        }
+                        .disabled(state.copiedScreen == nil)
+                        Divider()
                         Button("Delete", role: .destructive) {
                             state.deleteScreen(screen)
                         }

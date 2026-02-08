@@ -57,6 +57,7 @@ final class ProjectState {
     var hasUnsavedChanges: Bool = false
     var undoManager: UndoManager?
     var zoomScale: Double = 0.5
+    var copiedScreen: Screen?
 
     func zoomIn() {
         withAnimation(.easeInOut(duration: 0.15)) {
@@ -104,7 +105,26 @@ final class ProjectState {
 
     func addScreen() {
         let count = project.screens.count + 1
-        let screen = Screen(name: "Screen \(count)", title: "Title", subtitle: "Subtitle")
+        let previousScreen = selectedScreen ?? project.screens.last
+        let screen: Screen
+        if let prev = previousScreen {
+            screen = Screen(
+                name: "Screen \(count)",
+                layoutPreset: prev.layoutPreset,
+                background: prev.background,
+                showDeviceFrame: prev.showDeviceFrame,
+                isLandscape: prev.isLandscape,
+                fontFamily: prev.fontFamily,
+                fontSize: prev.fontSize,
+                textColorHex: prev.textColorHex,
+                titleStyle: prev.titleStyle,
+                subtitleStyle: prev.subtitleStyle,
+                deviceFrameConfig: prev.deviceFrameConfig,
+                screenshotContentMode: prev.screenshotContentMode
+            )
+        } else {
+            screen = Screen(name: "Screen \(count)")
+        }
         project.screens.append(screen)
         selectedScreenID = screen.id
         hasUnsavedChanges = true
@@ -165,5 +185,47 @@ final class ProjectState {
             }
         }
         undoManager?.setActionName(actionName)
+    }
+
+    func duplicateScreen(_ screen: Screen) {
+        guard let index = project.screens.firstIndex(where: { $0.id == screen.id }) else { return }
+        var newScreen = screen
+        newScreen.id = UUID()
+        newScreen.name = screen.name + " Copy"
+        project.screens.insert(newScreen, at: index + 1)
+        selectedScreenID = newScreen.id
+        hasUnsavedChanges = true
+
+        undoManager?.registerUndo(withTarget: self) { state in
+            state.project.screens.removeAll { $0.id == newScreen.id }
+            if state.selectedScreenID == newScreen.id {
+                state.selectedScreenID = screen.id
+            }
+            state.hasUnsavedChanges = true
+        }
+        undoManager?.setActionName("Duplicate Screen")
+    }
+
+    func copyScreen(_ screen: Screen) {
+        copiedScreen = screen
+    }
+
+    func pasteScreen() {
+        guard let source = copiedScreen else { return }
+        var newScreen = source
+        newScreen.id = UUID()
+        newScreen.name = source.name + " Copy"
+        project.screens.append(newScreen)
+        selectedScreenID = newScreen.id
+        hasUnsavedChanges = true
+
+        undoManager?.registerUndo(withTarget: self) { state in
+            state.project.screens.removeAll { $0.id == newScreen.id }
+            if state.selectedScreenID == newScreen.id {
+                state.selectedScreenID = state.project.screens.first?.id
+            }
+            state.hasUnsavedChanges = true
+        }
+        undoManager?.setActionName("Paste Screen")
     }
 }
