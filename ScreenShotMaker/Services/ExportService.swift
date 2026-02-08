@@ -12,6 +12,7 @@ struct ExportableScreenView: View {
     let device: DeviceSize
     var languageCode: String = "en"
 
+  
     private var sf: CGFloat {
         guard let ref = ScalingService.referenceDevice(for: device.category) else { return 1.0 }
         return ScalingService.scaleFactor(from: ref, to: device)
