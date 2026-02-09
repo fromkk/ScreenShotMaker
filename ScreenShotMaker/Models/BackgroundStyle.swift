@@ -1,80 +1,80 @@
 import SwiftUI
 
 enum BackgroundStyle: Codable, Hashable {
-    case solidColor(HexColor)
-    case gradient(startColor: HexColor, endColor: HexColor)
-    case image(data: Data)
+  case solidColor(HexColor)
+  case gradient(startColor: HexColor, endColor: HexColor)
+  case image(data: Data)
 }
 
 struct HexColor: Codable, Hashable {
-    var hex: String
+  var hex: String
 
-    init(_ hex: String) {
-        self.hex = hex
-    }
+  init(_ hex: String) {
+    self.hex = hex
+  }
 
-    var color: Color {
-        Color(hex: hex)
-    }
+  var color: Color {
+    Color(hex: hex)
+  }
 }
 
 extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-        let scanner = Scanner(string: hex)
-        var rgbValue: UInt64 = 0
-        scanner.scanHexInt64(&rgbValue)
+  init(hex: String) {
+    let hex = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+    let scanner = Scanner(string: hex)
+    var rgbValue: UInt64 = 0
+    scanner.scanHexInt64(&rgbValue)
 
-        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
-        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
-        let b = Double(rgbValue & 0x0000FF) / 255.0
+    let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
+    let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
+    let b = Double(rgbValue & 0x0000FF) / 255.0
 
-        self.init(red: r, green: g, blue: b)
-    }
+    self.init(red: r, green: g, blue: b)
+  }
 
-    func toHex() -> String {
-        #if canImport(AppKit)
-        guard let nsColor = NSColor(self).usingColorSpace(.sRGB) else {
-            return "#000000"
-        }
-        let r = Int(round(nsColor.redComponent * 255))
-        let g = Int(round(nsColor.greenComponent * 255))
-        let b = Int(round(nsColor.blueComponent * 255))
-        #elseif canImport(UIKit)
-        var red: CGFloat = 0
-        var green: CGFloat = 0
-        var blue: CGFloat = 0
-        UIColor(self).getRed(&red, green: &green, blue: &blue, alpha: nil)
-        let r = Int(round(red * 255))
-        let g = Int(round(green * 255))
-        let b = Int(round(blue * 255))
-        #endif
-        return String(format: "#%02X%02X%02X", r, g, b)
-    }
+  func toHex() -> String {
+    #if canImport(AppKit)
+      guard let nsColor = NSColor(self).usingColorSpace(.sRGB) else {
+        return "#000000"
+      }
+      let r = Int(round(nsColor.redComponent * 255))
+      let g = Int(round(nsColor.greenComponent * 255))
+      let b = Int(round(nsColor.blueComponent * 255))
+    #elseif canImport(UIKit)
+      var red: CGFloat = 0
+      var green: CGFloat = 0
+      var blue: CGFloat = 0
+      UIColor(self).getRed(&red, green: &green, blue: &blue, alpha: nil)
+      let r = Int(round(red * 255))
+      let g = Int(round(green * 255))
+      let b = Int(round(blue * 255))
+    #endif
+    return String(format: "#%02X%02X%02X", r, g, b)
+  }
 }
 
 extension TextStyle.TextStyleAlignment {
-    var textAlignment: TextAlignment {
-        switch self {
-        case .leading: .leading
-        case .center: .center
-        case .trailing: .trailing
-        }
+  var textAlignment: TextAlignment {
+    switch self {
+    case .leading: .leading
+    case .center: .center
+    case .trailing: .trailing
     }
+  }
 
-    var horizontalAlignment: HorizontalAlignment {
-        switch self {
-        case .leading: .leading
-        case .center: .center
-        case .trailing: .trailing
-        }
+  var horizontalAlignment: HorizontalAlignment {
+    switch self {
+    case .leading: .leading
+    case .center: .center
+    case .trailing: .trailing
     }
+  }
 
-    var alignment: Alignment {
-        switch self {
-        case .leading: .leading
-        case .center: .center
-        case .trailing: .trailing
-        }
+  var alignment: Alignment {
+    switch self {
+    case .leading: .leading
+    case .center: .center
+    case .trailing: .trailing
     }
+  }
 }
