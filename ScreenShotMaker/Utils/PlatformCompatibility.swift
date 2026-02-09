@@ -68,6 +68,15 @@ extension Color {
 // MARK: - Font Helper
 
 enum FontHelper {
+    /// Default font family name for the platform
+    static var defaultFontFamily: String {
+        #if canImport(AppKit)
+        return "SF Pro Display"
+        #elseif canImport(UIKit)
+        return ".AppleSystemUIFont"
+        #endif
+    }
+
     /// Available font family names sorted alphabetically
     static var availableFontFamilies: [String] {
         #if canImport(AppKit)

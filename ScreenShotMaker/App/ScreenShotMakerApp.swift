@@ -110,7 +110,7 @@ struct ScreenShotMakerApp: App {
                 }
                 .keyboardShortcut("o", modifiers: .command)
             }
-            CommandMenu("View") {
+            CommandGroup(after: .toolbar) {
                 Button("Zoom In") {
                     projectState.zoomIn()
                 }

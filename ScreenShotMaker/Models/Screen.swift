@@ -167,7 +167,7 @@ struct Screen: Identifiable, Hashable {
         screenshotImages: [String: Data] = [:],
         showDeviceFrame: Bool = true,
         isLandscape: Bool = false,
-        fontFamily: String = "SF Pro Display",
+        fontFamily: String = FontHelper.defaultFontFamily,
         fontSize: Double = 28,
         textColorHex: String = "#FFFFFF",
         titleStyle: TextStyle = TextStyle(isBold: true),

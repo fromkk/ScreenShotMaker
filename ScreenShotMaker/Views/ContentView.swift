@@ -5,9 +5,10 @@ struct ContentView: View {
     @Bindable var projectState: ProjectState
     @Environment(\.undoManager) private var undoManager
     @State private var showInspector = true
+    @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(state: projectState)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
         } detail: {
@@ -16,26 +17,66 @@ struct ContentView: View {
                     PropertiesPanelView(state: projectState)
                         .inspectorColumnWidth(min: 250, ideal: 300, max: 400)
                 }
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .automatic) {
-                DevicePicker(state: projectState)
-                DeviceManagerButton(state: projectState)
-                LanguagePicker(state: projectState)
-                LanguageManagerButton(state: projectState)
-                Spacer()
-                ExportButton(state: projectState)
-                BatchExportButton(state: projectState)
-
-                Button {
-                    withAnimation {
-                        showInspector.toggle()
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
+                .toolbar {
+                    #if os(iOS)
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            withAnimation {
+                                if columnVisibility == .detailOnly {
+                                    columnVisibility = .doubleColumn
+                                } else {
+                                    columnVisibility = .detailOnly
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "sidebar.leading")
+                        }
                     }
-                } label: {
-                    Image(systemName: "sidebar.trailing")
+
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        DevicePicker(state: projectState)
+                        DeviceManagerButton(state: projectState)
+                        LanguagePicker(state: projectState)
+                        LanguageManagerButton(state: projectState)
+                    }
+
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        ExportButton(state: projectState)
+                        BatchExportButton(state: projectState)
+
+                        Button {
+                            withAnimation {
+                                showInspector.toggle()
+                            }
+                        } label: {
+                            Image(systemName: "sidebar.trailing")
+                        }
+                        .help("Toggle Inspector")
+                    }
+                    #else
+                    ToolbarItemGroup(placement: .automatic) {
+                        DevicePicker(state: projectState)
+                        DeviceManagerButton(state: projectState)
+                        LanguagePicker(state: projectState)
+                        LanguageManagerButton(state: projectState)
+                        Spacer()
+                        ExportButton(state: projectState)
+                        BatchExportButton(state: projectState)
+
+                        Button {
+                            withAnimation {
+                                showInspector.toggle()
+                            }
+                        } label: {
+                            Image(systemName: "sidebar.trailing")
+                        }
+                        .help("Toggle Inspector")
+                    }
+                    #endif
                 }
-                .help("Toggle Inspector")
-            }
         }
         .onAppear {
             projectState.undoManager = undoManager
@@ -56,6 +97,7 @@ private struct DevicePicker: View {
                     .tag(index)
             }
         }
+        .pickerStyle(.menu)
         .frame(maxWidth: 200)
     }
 }
@@ -70,6 +112,7 @@ private struct LanguagePicker: View {
                     .tag(index)
             }
         }
+        .pickerStyle(.menu)
         .frame(maxWidth: 150)
     }
 }

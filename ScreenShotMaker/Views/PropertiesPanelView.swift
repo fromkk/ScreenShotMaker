@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 @preconcurrency import Translation
@@ -15,9 +16,16 @@ struct PropertiesPanelView: View {
     @State private var translationID = UUID()
     @State private var showBackgroundImagePicker = false
     @State private var showScreenshotImagePicker = false
+    @State private var backgroundPhotosItem: PhotosPickerItem?
+    @State private var screenshotPhotosItem: PhotosPickerItem?
 
     private var availableFontFamilies: [String] {
-        FontHelper.availableFontFamilies
+        let families = FontHelper.availableFontFamilies
+        // Ensure current selection is always present
+        if let screen = state.selectedScreen, !families.contains(screen.fontFamily) {
+            return ([screen.fontFamily] + families).sorted()
+        }
+        return families
     }
 
     private var selectedScreenBinding: Binding<Screen>? {
@@ -422,11 +430,18 @@ struct PropertiesPanelView: View {
                     }
                 }
 
-                Button {
-                    showBackgroundImagePicker = true
-                } label: {
-                    Label("Choose Image", systemImage: "photo")
-                        .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    Button {
+                        showBackgroundImagePicker = true
+                    } label: {
+                        Label("Files", systemImage: "folder")
+                            .frame(maxWidth: .infinity)
+                    }
+
+                    PhotosPicker(selection: $backgroundPhotosItem, matching: .images) {
+                        Label("Photos", systemImage: "photo")
+                            .frame(maxWidth: .infinity)
+                    }
                 }
             }
         }
@@ -573,9 +588,6 @@ struct PropertiesPanelView: View {
                         .buttonStyle(.plain)
                         .padding(4)
                     }
-                    .onTapGesture {
-                        showScreenshotImagePicker = true
-                    }
                     .onDrop(of: [.fileURL], isTargeted: nil) { providers in
                         handleScreenshotDrop(providers: providers, screen: screen)
                     }
@@ -589,17 +601,28 @@ struct PropertiesPanelView: View {
                                 Image(systemName: "arrow.up.doc")
                                     .font(.title3)
                                     .foregroundStyle(.secondary)
-                                Text("Drop image or click to browse")
+                                Text("Drop image or click below")
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .onTapGesture {
-                            showScreenshotImagePicker = true
-                        }
                         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
                             handleScreenshotDrop(providers: providers, screen: screen)
                         }
+                }
+
+                HStack(spacing: 8) {
+                    Button {
+                        showScreenshotImagePicker = true
+                    } label: {
+                        Label("Files", systemImage: "folder")
+                            .frame(maxWidth: .infinity)
+                    }
+
+                    PhotosPicker(selection: $screenshotPhotosItem, matching: .images) {
+                        Label("Photos", systemImage: "photo")
+                            .frame(maxWidth: .infinity)
+                    }
                 }
 
                 PropertyField(label: "Content Mode") {
@@ -633,6 +656,12 @@ struct PropertiesPanelView: View {
             allowsMultipleSelection: false
         ) { result in
             handleScreenshotImageImport(result: result, screen: screen)
+        }
+        .onChange(of: backgroundPhotosItem) { _, newItem in
+            handleBackgroundPhotosItem(newItem, screen: screen)
+        }
+        .onChange(of: screenshotPhotosItem) { _, newItem in
+            handleScreenshotPhotosItem(newItem, screen: screen)
         }
     }
 
@@ -674,6 +703,45 @@ struct PropertiesPanelView: View {
         case .failure(let error):
             imageLoadError = error.localizedDescription
             showImageLoadError = true
+        }
+    }
+
+    private func handleBackgroundPhotosItem(_ item: PhotosPickerItem?, screen: Binding<Screen>) {
+        guard let item else { return }
+        Task {
+            do {
+                guard let data = try await item.loadTransferable(type: Data.self) else {
+                    imageLoadError = "Failed to load image from Photos"
+                    showImageLoadError = true
+                    return
+                }
+                screen.wrappedValue.background = .image(data: data)
+            } catch {
+                imageLoadError = error.localizedDescription
+                showImageLoadError = true
+            }
+            backgroundPhotosItem = nil
+        }
+    }
+
+    private func handleScreenshotPhotosItem(_ item: PhotosPickerItem?, screen: Binding<Screen>) {
+        guard let item else { return }
+        Task {
+            do {
+                guard let data = try await item.loadTransferable(type: Data.self) else {
+                    imageLoadError = "Failed to load image from Photos"
+                    showImageLoadError = true
+                    return
+                }
+                if let category = state.selectedDevice?.category {
+                    let languageCode = state.selectedLanguage?.code ?? "en"
+                    screen.wrappedValue.setScreenshotImageData(data, for: languageCode, category: category)
+                }
+            } catch {
+                imageLoadError = error.localizedDescription
+                showImageLoadError = true
+            }
+            screenshotPhotosItem = nil
         }
     }
 
