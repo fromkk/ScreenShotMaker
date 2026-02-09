@@ -260,4 +260,46 @@ enum ExportService {
 
         progressState.isExporting = false
     }
+
+    /// Renders all screens to in-memory Data without writing to disk.
+    /// Used on iOS for saving to Photos library.
+    static func batchRender(
+        project: ScreenShotProject,
+        devices: [DeviceSize],
+        languages: [Language],
+        format: ExportFormat,
+        progressState: ExportProgressState
+    ) -> [(data: Data, filename: String)] {
+        let screens = project.screens
+        let total = screens.count * devices.count * languages.count
+        progressState.total = total
+        progressState.completed = 0
+        progressState.isExporting = true
+
+        var results: [(data: Data, filename: String)] = []
+        var completed = 0
+        for language in languages {
+            for device in devices {
+                for screen in screens {
+                    if progressState.isCancelled { break }
+
+                    progressState.currentItem = "\(screen.name) / \(device.name) / \(language.displayName)"
+
+                    if let data = exportScreen(screen, device: device, format: format, languageCode: language.code) {
+                        let filename = "\(language.code)_\(device.name)_\(screen.name).\(format.fileExtension)"
+                        results.append((data: data, filename: filename))
+                    } else {
+                        progressState.errors.append("Failed to render: \(screen.name) / \(device.name)")
+                    }
+
+                    completed += 1
+                    progressState.completed = completed
+                }
+                if progressState.isCancelled { break }
+            }
+            if progressState.isCancelled { break }
+        }
+
+        return results
+    }
 }

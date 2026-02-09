@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 @Observable
 final class ExportProgressState {
@@ -115,12 +118,14 @@ struct ExportProgressView: View {
             }
 
             HStack(spacing: 12) {
+                #if os(macOS)
                 if let outputDirectory {
                     Button("Open Folder") {
                         NSWorkspace.shared.open(outputDirectory)
                     }
                     .buttonStyle(.borderedProminent)
                 }
+                #endif
 
                 Button("Done") {
                     onDismiss()

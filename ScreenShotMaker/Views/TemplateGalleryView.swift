@@ -85,7 +85,7 @@ struct TemplateGalleryView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Color(nsColor: .separatorColor))
+                            .strokeBorder(Color.platformSeparator)
                     )
 
                 Text(template.name)

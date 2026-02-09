@@ -106,7 +106,7 @@ private struct ScreenRow: View {
     var body: some View {
         HStack(spacing: 10) {
             RoundedRectangle(cornerRadius: 4)
-                .fill(Color(nsColor: .separatorColor))
+                .fill(Color.platformSeparator)
                 .frame(width: 32, height: 56)
 
             VStack(alignment: .leading, spacing: 2) {

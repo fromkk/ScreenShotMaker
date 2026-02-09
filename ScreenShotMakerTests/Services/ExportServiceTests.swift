@@ -1,4 +1,9 @@
+#if canImport(AppKit)
 import AppKit
+#endif
+#if canImport(UIKit)
+import UIKit
+#endif
 import Foundation
 import Testing
 
@@ -49,11 +54,18 @@ struct ExportServiceTests {
     func testPNGDimensions() {
         let data = ExportService.exportScreen(testScreen, device: testDevice, format: .png)
         #expect(data != nil)
+        #if canImport(AppKit)
         if let data, let nsImage = NSImage(data: data),
            let bitmap = NSBitmapImageRep(data: nsImage.tiffRepresentation!) {
             #expect(bitmap.pixelsWide == testDevice.portraitWidth)
             #expect(bitmap.pixelsHigh == testDevice.portraitHeight)
         }
+        #elseif canImport(UIKit)
+        if let data, let uiImage = UIImage(data: data) {
+            #expect(Int(uiImage.size.width * uiImage.scale) == testDevice.portraitWidth)
+            #expect(Int(uiImage.size.height * uiImage.scale) == testDevice.portraitHeight)
+        }
+        #endif
     }
 
     @Test("Export screen with screenshot image data")

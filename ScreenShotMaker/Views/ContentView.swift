@@ -223,10 +223,51 @@ private struct ExportButton: View {
     @State private var exportDocument: ExportedImageDocument?
     @State private var exportFilename: String = "screen.png"
     @State private var exportContentType: UTType = .png
+    #if os(iOS)
+    @State private var showSaveSuccess = false
+    #endif
 
     var body: some View {
+        #if os(iOS)
+        Menu {
+            Button {
+                exportToPhotos()
+            } label: {
+                Label("Save to Photos", systemImage: "photo.on.rectangle")
+            }
+            Button {
+                exportToFile()
+            } label: {
+                Label("Save to Files", systemImage: "folder")
+            }
+        } label: {
+            Label("Export", systemImage: "square.and.arrow.up")
+        }
+        .disabled(state.selectedScreen == nil || state.selectedDevice == nil)
+        .alert("Export Error", isPresented: $showExportError) {
+            Button("OK") {}
+        } message: {
+            Text(exportError ?? "Unknown error")
+        }
+        .alert("Saved", isPresented: $showSaveSuccess) {
+            Button("OK") {}
+        } message: {
+            Text("Screenshot saved to Photos.")
+        }
+        .fileExporter(
+            isPresented: $showExportFile,
+            document: exportDocument,
+            contentType: exportContentType,
+            defaultFilename: exportFilename
+        ) { result in
+            if case .failure(let error) = result {
+                exportError = error.localizedDescription
+                showExportError = true
+            }
+        }
+        #else
         Button {
-            exportCurrentScreen()
+            exportToFile()
         } label: {
             Label("Export", systemImage: "square.and.arrow.up")
         }
@@ -248,24 +289,46 @@ private struct ExportButton: View {
                 showExportError = true
             }
         }
+        #endif
     }
 
-    private func exportCurrentScreen() {
+    #if os(iOS)
+    private func exportToPhotos() {
+        guard let data = renderCurrentScreen() else { return }
+        Task {
+            do {
+                try await PhotoLibraryService.requestAuthorization()
+                try await PhotoLibraryService.saveImage(data)
+                showSaveSuccess = true
+            } catch {
+                exportError = error.localizedDescription
+                showExportError = true
+            }
+        }
+    }
+    #endif
+
+    private func exportToFile() {
+        guard let data = renderCurrentScreen() else { return }
+        let screen = state.selectedScreen!
+        exportDocument = ExportedImageDocument(data: data)
+        exportFilename = screen.name + ".png"
+        exportContentType = .png
+        showExportFile = true
+    }
+
+    private func renderCurrentScreen() -> Data? {
         guard let screen = state.selectedScreen,
-              let device = state.selectedDevice else { return }
+              let device = state.selectedDevice else { return nil }
 
         let format: ExportFormat = .png
         let languageCode = state.selectedLanguage?.code ?? "en"
         guard let data = ExportService.exportScreen(screen, device: device, format: format, languageCode: languageCode) else {
             exportError = "Failed to render the screen."
             showExportError = true
-            return
+            return nil
         }
-
-        exportDocument = ExportedImageDocument(data: data)
-        exportFilename = screen.name + ".png"
-        exportContentType = .png
-        showExportFile = true
+        return data
     }
 }
 
@@ -295,8 +358,57 @@ private struct BatchExportButton: View {
     @State private var outputDirectory: URL?
     @State private var exportTask: Task<Void, Never>?
     @State private var showFolderPicker = false
+    #if os(iOS)
+    @State private var showExportError = false
+    @State private var exportError: String?
+    #endif
 
     var body: some View {
+        #if os(iOS)
+        Menu {
+            Button {
+                batchExportToPhotos()
+            } label: {
+                Label("Save to Photos", systemImage: "photo.on.rectangle")
+            }
+            Button {
+                showFolderPicker = true
+            } label: {
+                Label("Save to Files", systemImage: "folder")
+            }
+        } label: {
+            Label("Export All", systemImage: "square.and.arrow.up.on.square")
+        }
+        .disabled(state.project.screens.isEmpty)
+        .alert("Export Error", isPresented: $showExportError) {
+            Button("OK") {}
+        } message: {
+            Text(exportError ?? "Unknown error")
+        }
+        .fileImporter(
+            isPresented: $showFolderPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    startBatchExport(to: url)
+                }
+            case .failure:
+                break
+            }
+        }
+        .sheet(isPresented: $showBatchExport) {
+            ExportProgressView(
+                progressState: progressState,
+                outputDirectory: outputDirectory
+            ) {
+                showBatchExport = false
+                progressState.reset()
+            }
+        }
+        #else
         Button {
             showFolderPicker = true
         } label: {
@@ -326,7 +438,41 @@ private struct BatchExportButton: View {
                 progressState.reset()
             }
         }
+        #endif
     }
+
+    #if os(iOS)
+    private func batchExportToPhotos() {
+        outputDirectory = nil
+        progressState.reset()
+        showBatchExport = true
+
+        exportTask = Task {
+            do {
+                try await PhotoLibraryService.requestAuthorization()
+
+                let images = ExportService.batchRender(
+                    project: state.project,
+                    devices: state.project.selectedDevices,
+                    languages: state.project.languages,
+                    format: .png,
+                    progressState: progressState
+                )
+
+                let albumName = state.project.name.isEmpty ? "Shotcraft" : state.project.name
+                try await PhotoLibraryService.saveImagesToAlbum(
+                    images: images,
+                    albumName: albumName
+                ) { completed, total in
+                    progressState.currentItem = "Saving to Photos... (\(completed)/\(total))"
+                }
+            } catch {
+                progressState.errors.append(error.localizedDescription)
+            }
+            progressState.isExporting = false
+        }
+    }
+    #endif
 
     private func startBatchExport(to url: URL) {
         let accessing = url.startAccessingSecurityScopedResource()

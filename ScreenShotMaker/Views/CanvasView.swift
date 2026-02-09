@@ -26,7 +26,7 @@ struct CanvasView: View {
             bottomBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.5))
+        .background(Color.platformBackground.opacity(0.5))
         .gesture(
             MagnifyGesture()
                 .updating($magnification) { value, gestureState, _ in
@@ -81,8 +81,8 @@ struct CanvasView: View {
                 endPoint: .bottom
             )
         case .image(let data):
-            if let nsImage = NSImage(data: data) {
-                Image(nsImage: nsImage)
+            if let platformImage = PlatformImage(data: data) {
+                Image(platformImage: platformImage)
                     .resizable()
                     .scaledToFill()
             } else {
@@ -182,8 +182,8 @@ struct CanvasView: View {
             .overlay {
                 if let device = state.selectedDevice,
                    let imageData = screen.screenshotImageData(for: languageCode, category: device.category),
-                   let nsImage = NSImage(data: imageData) {
-                    Image(nsImage: nsImage)
+                   let platformImage = PlatformImage(data: imageData) {
+                    Image(platformImage: platformImage)
                         .resizable()
                         .aspectRatio(contentMode: screen.screenshotContentMode == .fill ? .fill : .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 8))

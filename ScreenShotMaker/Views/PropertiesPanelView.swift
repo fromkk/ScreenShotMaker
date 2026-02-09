@@ -140,7 +140,7 @@ struct PropertiesPanelView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color(nsColor: .controlColor), in: RoundedRectangle(cornerRadius: 4))
+                        .background(Color.platformControl, in: RoundedRectangle(cornerRadius: 4))
 
                     Spacer()
 
@@ -402,9 +402,9 @@ struct PropertiesPanelView: View {
 
         case .image(let data):
             VStack(spacing: 8) {
-                if let nsImage = NSImage(data: data) {
+                if let platformImage = PlatformImage(data: data) {
                     ZStack(alignment: .topTrailing) {
-                        Image(nsImage: nsImage)
+                        Image(platformImage: platformImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxHeight: 80)
@@ -552,9 +552,9 @@ struct PropertiesPanelView: View {
             VStack(spacing: 8) {
                 if let category = state.selectedDevice?.category,
                    let imageData = screen.wrappedValue.screenshotImageData(for: languageCode, category: category),
-                   let nsImage = NSImage(data: imageData) {
+                   let platformImage = PlatformImage(data: imageData) {
                     ZStack(alignment: .topTrailing) {
-                        Image(nsImage: nsImage)
+                        Image(platformImage: platformImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxHeight: 120)
@@ -758,11 +758,11 @@ private struct LayoutPresetButton: View {
                 presetIcon
                     .frame(height: 48)
                     .frame(maxWidth: .infinity)
-                    .background(Color(nsColor: .controlBackgroundColor))
+                    .background(Color.platformControlBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(isSelected ? Color.accentColor : Color(nsColor: .separatorColor), lineWidth: isSelected ? 2 : 1)
+                            .strokeBorder(isSelected ? Color.accentColor : Color.platformSeparator, lineWidth: isSelected ? 2 : 1)
                     )
 
                 Text(preset.displayName)
@@ -779,16 +779,16 @@ private struct LayoutPresetButton: View {
             switch preset {
             case .textTop:
                 RoundedRectangle(cornerRadius: 2).fill(isSelected ? Color.accentColor : .secondary).frame(height: 6)
-                RoundedRectangle(cornerRadius: 2).fill(Color(nsColor: .separatorColor)).frame(maxHeight: .infinity)
+                RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(maxHeight: .infinity)
 
             case .textOverlay:
                 ZStack {
-                    RoundedRectangle(cornerRadius: 2).fill(Color(nsColor: .separatorColor))
+                    RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator)
                     RoundedRectangle(cornerRadius: 2).fill(isSelected ? Color.accentColor.opacity(0.6) : .secondary.opacity(0.5)).frame(width: 28, height: 6)
                 }
 
             case .textBottom:
-                RoundedRectangle(cornerRadius: 2).fill(Color(nsColor: .separatorColor)).frame(maxHeight: .infinity)
+                RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(maxHeight: .infinity)
                 RoundedRectangle(cornerRadius: 2).fill(isSelected ? Color.accentColor : .secondary).frame(height: 6)
 
             case .textOnly:
@@ -798,7 +798,7 @@ private struct LayoutPresetButton: View {
                 Spacer()
 
             case .screenshotOnly:
-                RoundedRectangle(cornerRadius: 2).fill(Color(nsColor: .separatorColor)).frame(maxHeight: .infinity)
+                RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(maxHeight: .infinity)
             }
         }
         .padding(6)
