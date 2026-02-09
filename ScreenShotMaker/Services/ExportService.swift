@@ -46,8 +46,8 @@ struct ExportableScreenView: View {
                 endPoint: .bottom
             )
         case .image(let data):
-            if let nsImage = NSImage(data: data) {
-                Image(nsImage: nsImage)
+            if let image = PlatformImage(data: data) {
+                Image(platformImage: image)
                     .resizable()
                     .scaledToFill()
             } else {
@@ -139,8 +139,8 @@ struct ExportableScreenView: View {
             .fill(.white)
             .overlay {
                 if let imageData = screen.screenshotImageData(for: languageCode, category: device.category),
-                   let nsImage = NSImage(data: imageData) {
-                    Image(nsImage: nsImage)
+                   let image = PlatformImage(data: imageData) {
+                    Image(platformImage: image)
                         .resizable()
                         .aspectRatio(contentMode: screen.screenshotContentMode == .fill ? .fill : .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -179,6 +179,7 @@ enum ExportService {
         let renderer = ImageRenderer(content: view)
         renderer.scale = 1.0
 
+        #if canImport(AppKit)
         guard let nsImage = renderer.nsImage,
               let tiffData = nsImage.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData) else {
@@ -191,6 +192,18 @@ enum ExportService {
         case .jpeg:
             return bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
         }
+        #elseif canImport(UIKit)
+        guard let uiImage = renderer.uiImage else {
+            return nil
+        }
+
+        switch format {
+        case .png:
+            return uiImage.pngData()
+        case .jpeg:
+            return uiImage.jpegData(compressionQuality: 0.9)
+        }
+        #endif
     }
 
     static func batchExport(
