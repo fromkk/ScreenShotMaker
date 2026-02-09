@@ -219,6 +219,10 @@ private struct ExportButton: View {
     let state: ProjectState
     @State private var showExportError = false
     @State private var exportError: String?
+    @State private var showExportFile = false
+    @State private var exportDocument: ExportedImageDocument?
+    @State private var exportFilename: String = "screen.png"
+    @State private var exportContentType: UTType = .png
 
     var body: some View {
         Button {
@@ -233,22 +237,24 @@ private struct ExportButton: View {
         } message: {
             Text(exportError ?? "Unknown error")
         }
+        .fileExporter(
+            isPresented: $showExportFile,
+            document: exportDocument,
+            contentType: exportContentType,
+            defaultFilename: exportFilename
+        ) { result in
+            if case .failure(let error) = result {
+                exportError = error.localizedDescription
+                showExportError = true
+            }
+        }
     }
 
     private func exportCurrentScreen() {
         guard let screen = state.selectedScreen,
               let device = state.selectedDevice else { return }
 
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.png, .jpeg]
-        panel.nameFieldStringValue = screen.name + ".png"
-        panel.canCreateDirectories = true
-
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-
-        let format: ExportFormat = url.pathExtension.lowercased() == "jpeg" || url.pathExtension.lowercased() == "jpg"
-            ? .jpeg : .png
-
+        let format: ExportFormat = .png
         let languageCode = state.selectedLanguage?.code ?? "en"
         guard let data = ExportService.exportScreen(screen, device: device, format: format, languageCode: languageCode) else {
             exportError = "Failed to render the screen."
@@ -256,12 +262,29 @@ private struct ExportButton: View {
             return
         }
 
-        do {
-            try data.write(to: url, options: .atomic)
-        } catch {
-            exportError = error.localizedDescription
-            showExportError = true
-        }
+        exportDocument = ExportedImageDocument(data: data)
+        exportFilename = screen.name + ".png"
+        exportContentType = .png
+        showExportFile = true
+    }
+}
+
+/// FileDocument wrapper for exported images
+struct ExportedImageDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.png, .jpeg] }
+
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
 
@@ -271,14 +294,29 @@ private struct BatchExportButton: View {
     @State private var progressState = ExportProgressState()
     @State private var outputDirectory: URL?
     @State private var exportTask: Task<Void, Never>?
+    @State private var showFolderPicker = false
 
     var body: some View {
         Button {
-            startBatchExport()
+            showFolderPicker = true
         } label: {
             Label("Export All", systemImage: "square.and.arrow.up.on.square")
         }
         .disabled(state.project.screens.isEmpty)
+        .fileImporter(
+            isPresented: $showFolderPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    startBatchExport(to: url)
+                }
+            case .failure:
+                break
+            }
+        }
         .sheet(isPresented: $showBatchExport) {
             ExportProgressView(
                 progressState: progressState,
@@ -290,15 +328,8 @@ private struct BatchExportButton: View {
         }
     }
 
-    private func startBatchExport() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-        panel.prompt = "Export"
-        panel.message = "Choose an output folder for batch export"
-
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+    private func startBatchExport(to url: URL) {
+        let accessing = url.startAccessingSecurityScopedResource()
         outputDirectory = url
         progressState.reset()
         showBatchExport = true
@@ -312,6 +343,9 @@ private struct BatchExportButton: View {
                 outputDirectory: url,
                 progressState: progressState
             )
+            if accessing {
+                url.stopAccessingSecurityScopedResource()
+            }
         }
     }
 }

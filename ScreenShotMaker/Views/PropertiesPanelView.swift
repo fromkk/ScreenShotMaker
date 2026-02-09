@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 import UniformTypeIdentifiers
 @preconcurrency import Translation
 
@@ -14,9 +13,11 @@ struct PropertiesPanelView: View {
     @State private var showTranslationError = false
     @State private var translationTargetCode: String?
     @State private var translationID = UUID()
+    @State private var showBackgroundImagePicker = false
+    @State private var showScreenshotImagePicker = false
 
     private var availableFontFamilies: [String] {
-        NSFontManager.shared.availableFontFamilies.sorted()
+        FontHelper.availableFontFamilies
     }
 
     private var selectedScreenBinding: Binding<Screen>? {
@@ -422,7 +423,7 @@ struct PropertiesPanelView: View {
                 }
 
                 Button {
-                    openBackgroundImagePicker(screen: screen)
+                    showBackgroundImagePicker = true
                 } label: {
                     Label("Choose Image", systemImage: "photo")
                         .frame(maxWidth: .infinity)
@@ -573,7 +574,7 @@ struct PropertiesPanelView: View {
                         .padding(4)
                     }
                     .onTapGesture {
-                        openImagePicker(screen: screen)
+                        showScreenshotImagePicker = true
                     }
                     .onDrop(of: [.fileURL], isTargeted: nil) { providers in
                         handleScreenshotDrop(providers: providers, screen: screen)
@@ -594,7 +595,7 @@ struct PropertiesPanelView: View {
                             }
                         }
                         .onTapGesture {
-                            openImagePicker(screen: screen)
+                            showScreenshotImagePicker = true
                         }
                         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
                             handleScreenshotDrop(providers: providers, screen: screen)
@@ -619,13 +620,28 @@ struct PropertiesPanelView: View {
         } message: {
             Text(imageLoadError ?? "Unknown error")
         }
+        .fileImporter(
+            isPresented: $showBackgroundImagePicker,
+            allowedContentTypes: [.png, .jpeg],
+            allowsMultipleSelection: false
+        ) { result in
+            handleBackgroundImageImport(result: result, screen: screen)
+        }
+        .fileImporter(
+            isPresented: $showScreenshotImagePicker,
+            allowedContentTypes: [.png, .jpeg],
+            allowsMultipleSelection: false
+        ) { result in
+            handleScreenshotImageImport(result: result, screen: screen)
+        }
     }
 
-    private func openBackgroundImagePicker(screen: Binding<Screen>) {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.png, .jpeg]
-        panel.allowsMultipleSelection = false
-        if panel.runModal() == .OK, let url = panel.url {
+    private func handleBackgroundImageImport(result: Result<[URL], Error>, screen: Binding<Screen>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
             do {
                 let data = try ImageLoader.loadImage(from: url)
                 screen.wrappedValue.background = .image(data: data)
@@ -633,14 +649,18 @@ struct PropertiesPanelView: View {
                 imageLoadError = error.localizedDescription
                 showImageLoadError = true
             }
+        case .failure(let error):
+            imageLoadError = error.localizedDescription
+            showImageLoadError = true
         }
     }
 
-    private func openImagePicker(screen: Binding<Screen>) {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.png, .jpeg]
-        panel.allowsMultipleSelection = false
-        if panel.runModal() == .OK, let url = panel.url {
+    private func handleScreenshotImageImport(result: Result<[URL], Error>, screen: Binding<Screen>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
             do {
                 let data = try ImageLoader.loadImage(from: url)
                 if let category = state.selectedDevice?.category {
@@ -651,6 +671,9 @@ struct PropertiesPanelView: View {
                 imageLoadError = error.localizedDescription
                 showImageLoadError = true
             }
+        case .failure(let error):
+            imageLoadError = error.localizedDescription
+            showImageLoadError = true
         }
     }
 

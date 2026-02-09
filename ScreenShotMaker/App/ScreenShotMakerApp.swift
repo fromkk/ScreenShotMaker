@@ -7,10 +7,26 @@ struct ScreenShotMakerApp: App {
     @State private var showTemplateGallery = false
     @AppStorage("showTemplateOnLaunch") private var showTemplateOnLaunch = true
 
+    // File dialog states
+    @State private var showOpenProject = false
+    @State private var showSaveProject = false
+    @State private var projectDocumentData: Data?
+
+    // Unsaved changes confirmation
+    @State private var showUnsavedChangesDialog = false
+    @State private var pendingAction: (() -> Void)?
+
+    // Error alert
+    @State private var showError = false
+    @State private var errorTitle = ""
+    @State private var errorMessage = ""
+
     var body: some Scene {
         WindowGroup {
             ContentView(projectState: projectState)
+                #if os(macOS)
                 .frame(minWidth: 960, minHeight: 600)
+                #endif
                 .sheet(isPresented: $showTemplateGallery) {
                     TemplateGalleryView(state: projectState)
                 }
@@ -19,9 +35,67 @@ struct ScreenShotMakerApp: App {
                         showTemplateGallery = true
                     }
                 }
+                .fileImporter(
+                    isPresented: $showOpenProject,
+                    allowedContentTypes: [UTType(filenameExtension: "ssmaker")!],
+                    allowsMultipleSelection: false
+                ) { result in
+                    switch result {
+                    case .success(let urls):
+                        if let url = urls.first {
+                            loadProject(from: url)
+                        }
+                    case .failure(let error):
+                        presentError(title: "Failed to Open Project", message: error.localizedDescription)
+                    }
+                }
+                .fileExporter(
+                    isPresented: $showSaveProject,
+                    document: ProjectFileDocument(data: projectDocumentData ?? Data()),
+                    contentType: UTType(filenameExtension: "ssmaker")!,
+                    defaultFilename: projectState.project.name + ".ssmaker"
+                ) { result in
+                    switch result {
+                    case .success(let url):
+                        projectState.currentFileURL = url
+                        projectState.hasUnsavedChanges = false
+                        #if os(macOS)
+                        NSDocumentController.shared.noteNewRecentDocumentURL(url)
+                        #endif
+                    case .failure(let error):
+                        presentError(title: "Failed to Save Project", message: error.localizedDescription)
+                    }
+                }
+                .confirmationDialog(
+                    "Do you want to save the current project?",
+                    isPresented: $showUnsavedChangesDialog,
+                    titleVisibility: .visible
+                ) {
+                    Button("Save") {
+                        saveProject()
+                        pendingAction?()
+                        pendingAction = nil
+                    }
+                    Button("Don't Save", role: .destructive) {
+                        pendingAction?()
+                        pendingAction = nil
+                    }
+                    Button("Cancel", role: .cancel) {
+                        pendingAction = nil
+                    }
+                } message: {
+                    Text("Your changes will be lost if you don't save them.")
+                }
+                .alert(errorTitle, isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
+                }
         }
+        #if os(macOS)
         .windowStyle(.titleBar)
         .defaultSize(width: 1280, height: 800)
+        #endif
         .commands {
             CommandGroup(after: .newItem) {
                 Button("New from Template...") {
@@ -68,35 +142,16 @@ struct ScreenShotMakerApp: App {
 
     private func openProject() {
         if projectState.hasUnsavedChanges {
-            let alert = NSAlert()
-            alert.messageText = "Do you want to save the current project?"
-            alert.informativeText = "Your changes will be lost if you don't save them."
-            alert.alertStyle = .warning
-            alert.addButton(withTitle: "Save")
-            alert.addButton(withTitle: "Don't Save")
-            alert.addButton(withTitle: "Cancel")
-
-            let response = alert.runModal()
-            switch response {
-            case .alertFirstButtonReturn:
-                saveProject()
-            case .alertThirdButtonReturn:
-                return
-            default:
-                break
-            }
-        }
-
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "ssmaker")!]
-        panel.allowsMultipleSelection = false
-
-        if panel.runModal() == .OK, let url = panel.url {
-            loadProject(from: url)
+            pendingAction = { showOpenProject = true }
+            showUnsavedChangesDialog = true
+        } else {
+            showOpenProject = true
         }
     }
 
     private func loadProject(from url: URL) {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         do {
             let project = try ProjectFileService.load(from: url)
             projectState.project = project
@@ -105,24 +160,23 @@ struct ScreenShotMakerApp: App {
             projectState.selectedLanguageIndex = 0
             projectState.currentFileURL = url
             projectState.hasUnsavedChanges = false
+            #if os(macOS)
             NSDocumentController.shared.noteNewRecentDocumentURL(url)
+            #endif
         } catch {
-            let alert = NSAlert()
-            alert.messageText = "Failed to Open Project"
-            alert.informativeText = error.localizedDescription
-            alert.alertStyle = .warning
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
+            presentError(title: "Failed to Open Project", message: error.localizedDescription)
         }
     }
 
     private func saveProject() {
         if let url = projectState.currentFileURL {
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
             do {
                 try ProjectFileService.save(projectState.project, to: url)
                 projectState.hasUnsavedChanges = false
             } catch {
-                presentSaveError(error)
+                presentError(title: "Failed to Save Project", message: error.localizedDescription)
             }
         } else {
             saveProjectAs()
@@ -130,29 +184,39 @@ struct ScreenShotMakerApp: App {
     }
 
     private func saveProjectAs() {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "ssmaker")!]
-        panel.nameFieldStringValue = projectState.project.name + ".ssmaker"
-        panel.canCreateDirectories = true
-
-        if panel.runModal() == .OK, let url = panel.url {
-            do {
-                try ProjectFileService.save(projectState.project, to: url)
-                projectState.currentFileURL = url
-                projectState.hasUnsavedChanges = false
-                NSDocumentController.shared.noteNewRecentDocumentURL(url)
-            } catch {
-                presentSaveError(error)
-            }
+        do {
+            projectDocumentData = try ProjectFileService.encode(projectState.project)
+            showSaveProject = true
+        } catch {
+            presentError(title: "Failed to Save Project", message: error.localizedDescription)
         }
     }
 
-    private func presentSaveError(_ error: Error) {
-        let alert = NSAlert()
-        alert.messageText = "Failed to Save Project"
-        alert.informativeText = error.localizedDescription
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
+    private func presentError(title: String, message: String) {
+        errorTitle = title
+        errorMessage = message
+        showError = true
+    }
+}
+
+// MARK: - FileDocument wrapper for project files
+
+struct ProjectFileDocument: FileDocument {
+    static var readableContentTypes: [UTType] {
+        [UTType(filenameExtension: "ssmaker")!]
+    }
+
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
