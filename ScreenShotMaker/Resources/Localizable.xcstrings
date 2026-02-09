@@ -196,22 +196,6 @@
         }
       }
     },
-    "Choose Image" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Choose Image"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "画像を選択"
-          }
-        }
-      }
-    },
     "Click to reset to 100%" : {
       "localizations" : {
         "en" : {
@@ -324,6 +308,12 @@
         }
       }
     },
+    "Do you want to save the current project?" : {
+
+    },
+    "Don't Save" : {
+
+    },
     "Don't show on launch" : {
       "localizations" : {
         "en" : {
@@ -356,21 +346,8 @@
         }
       }
     },
-    "Drop image or click to browse" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Drop image or click to browse"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "画像をドロップするかクリックして選択"
-          }
-        }
-      }
+    "Drop image or click below" : {
+
     },
     "Drop screenshot" : {
       "localizations" : {
@@ -579,6 +556,9 @@
           }
         }
       }
+    },
+    "Files" : {
+
     },
     "Fill" : {
       "localizations" : {
@@ -884,6 +864,9 @@
         }
       }
     },
+    "Photos" : {
+
+    },
     "PNG or JPEG, max 20MB" : {
       "localizations" : {
         "en" : {
@@ -980,6 +963,15 @@
         }
       }
     },
+    "Save to Files" : {
+
+    },
+    "Save to Photos" : {
+
+    },
+    "Saved" : {
+
+    },
     "Screen name" : {
       "localizations" : {
         "en" : {
@@ -1011,6 +1003,9 @@
           }
         }
       }
+    },
+    "Screenshot saved to Photos." : {
+
     },
     "Select a screen to edit" : {
       "localizations" : {
@@ -1220,21 +1215,8 @@
         }
       }
     },
-    "View" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "View"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "表示"
-          }
-        }
-      }
+    "Your changes will be lost if you don't save them." : {
+
     },
     "Zoom In" : {
       "localizations" : {
