@@ -439,11 +439,6 @@ private struct BatchExportButton: View {
     #if os(iOS)
       Menu {
         Button {
-          batchExportToPhotos()
-        } label: {
-          Label("Save to Photos", systemImage: "photo.on.rectangle")
-        }
-        Button {
           showFolderPicker = true
         } label: {
           Label("Save to Files", systemImage: "folder")
@@ -512,41 +507,6 @@ private struct BatchExportButton: View {
       }
     #endif
   }
-
-  #if os(iOS)
-    private func batchExportToPhotos() {
-      outputDirectory = nil
-      progressState.reset()
-      showBatchExport = true
-
-      exportTask = Task {
-        do {
-          try await PhotoLibraryService.requestAuthorization()
-
-          let images = ExportService.batchRender(
-            project: state.project,
-            devices: state.project.selectedDevices,
-            languages: state.project.languages,
-            format: .png,
-            progressState: progressState
-          )
-
-          let albumName =
-            state.project.name.isEmpty ? "Shotcraft" : state.project.name
-          try await PhotoLibraryService.saveImagesToAlbum(
-            images: images,
-            albumName: albumName
-          ) { completed, total in
-            progressState.currentItem =
-              "Saving to Photos... (\(completed)/\(total))"
-          }
-        } catch {
-          progressState.errors.append(error.localizedDescription)
-        }
-        progressState.isExporting = false
-      }
-    }
-  #endif
 
   private func startBatchExport(to url: URL) {
     let accessing = url.startAccessingSecurityScopedResource()
