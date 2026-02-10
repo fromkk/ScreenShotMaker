@@ -1,10 +1,18 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 #if canImport(AppKit)
   import AppKit
 #elseif canImport(UIKit)
   import UIKit
 #endif
+
+// MARK: - Custom UTType
+
+extension UTType {
+  /// Shotcraft project package type (directory bundle with .shotcraft extension)
+  static let shotcraftProject = UTType("me.fromkk.ScreenShotMaker.project")!
+}
 
 // MARK: - Platform Image
 

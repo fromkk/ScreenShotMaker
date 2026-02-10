@@ -321,6 +321,9 @@
         }
       }
     },
+    "Do you want to save the current project before opening another?" : {
+
+    },
     "Do you want to save the current project?" : {
       "localizations" : {
         "en" : {
@@ -849,6 +852,9 @@
         }
       }
     },
+    "New Project" : {
+
+    },
     "No screen selected" : {
       "localizations" : {
         "en" : {
@@ -912,6 +918,9 @@
           }
         }
       }
+    },
+    "Open…" : {
+
     },
     "Orientation" : {
       "localizations" : {
@@ -1009,6 +1018,9 @@
         }
       }
     },
+    "Project" : {
+
+    },
     "Rename" : {
       "localizations" : {
         "en" : {
@@ -1072,6 +1084,9 @@
           }
         }
       }
+    },
+    "Save As…" : {
+
     },
     "Save to Files" : {
       "localizations" : {

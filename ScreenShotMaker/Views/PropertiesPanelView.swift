@@ -111,7 +111,9 @@ struct PropertiesPanelView: View {
                 ), format: .number
               )
               .textFieldStyle(.roundedBorder)
-              .keyboardType(.numberPad)
+              #if os(iOS)
+                .keyboardType(.numberPad)
+              #endif
               .frame(width: 60)
               .labelsHidden()
             }
@@ -249,7 +251,9 @@ struct PropertiesPanelView: View {
               ), format: .number
             )
             .textFieldStyle(.roundedBorder)
-            .keyboardType(.numberPad)
+            #if os(iOS)
+              .keyboardType(.numberPad)
+            #endif
             .frame(width: 60)
             .labelsHidden()
           }

@@ -10,7 +10,7 @@ struct ScreenShotMakerApp: App {
   // File dialog states
   @State private var showOpenProject = false
   @State private var showSaveProject = false
-  @State private var projectDocumentData: Data?
+  @State private var projectDocument: ProjectFileDocument?
 
   // Unsaved changes confirmation
   @State private var showUnsavedChangesDialog = false
@@ -21,9 +21,19 @@ struct ScreenShotMakerApp: App {
   @State private var errorTitle = ""
   @State private var errorMessage = ""
 
+  // onOpenURL state
+  @State private var pendingOpenURL: URL?
+  @State private var showOpenURLConfirmation = false
+
   var body: some Scene {
     WindowGroup {
-      ContentView(projectState: projectState)
+      ContentView(
+        projectState: projectState,
+        onNewProject: { newProject() },
+        onOpenProject: { openProject() },
+        onSaveProject: { saveProject() },
+        onSaveProjectAs: { saveProjectAs() }
+      )
         #if os(macOS)
           .frame(minWidth: 960, minHeight: 600)
         #endif
@@ -31,13 +41,31 @@ struct ScreenShotMakerApp: App {
           TemplateGalleryView(state: projectState)
         }
         .onAppear {
-          if showTemplateOnLaunch {
+          if let url = projectState.restoreBookmarkedURL() {
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            do {
+              let project = try ProjectFileService.loadPackageFromURL(url)
+              projectState.project = project
+              projectState.selectedScreenID = project.screens.first?.id
+              projectState.selectedDeviceIndex = 0
+              projectState.selectedLanguageIndex = 0
+              projectState.currentFileURL = url
+              projectState.hasUnsavedChanges = false
+            } catch {
+              // Bookmark is invalid, show template gallery
+              UserDefaults.standard.removeObject(forKey: "lastProjectBookmark")
+              if showTemplateOnLaunch {
+                showTemplateGallery = true
+              }
+            }
+          } else if showTemplateOnLaunch {
             showTemplateGallery = true
           }
         }
         .fileImporter(
           isPresented: $showOpenProject,
-          allowedContentTypes: [UTType(filenameExtension: "ssmaker")!],
+          allowedContentTypes: [.shotcraftProject],
           allowsMultipleSelection: false
         ) { result in
           switch result {
@@ -51,9 +79,9 @@ struct ScreenShotMakerApp: App {
         }
         .fileExporter(
           isPresented: $showSaveProject,
-          document: ProjectFileDocument(data: projectDocumentData ?? Data()),
-          contentType: UTType(filenameExtension: "ssmaker")!,
-          defaultFilename: projectState.project.name + ".ssmaker"
+          document: projectDocument,
+          contentType: .shotcraftProject,
+          defaultFilename: projectState.project.name + ".shotcraft"
         ) { result in
           switch result {
           case .success(let url):
@@ -90,6 +118,33 @@ struct ScreenShotMakerApp: App {
           Button("OK", role: .cancel) {}
         } message: {
           Text(errorMessage)
+        }
+        .onOpenURL { url in
+          handleOpenURL(url)
+        }
+        .confirmationDialog(
+          "Do you want to save the current project before opening another?",
+          isPresented: $showOpenURLConfirmation,
+          titleVisibility: .visible
+        ) {
+          Button("Save") {
+            saveProject()
+            if let url = pendingOpenURL {
+              loadProject(from: url)
+            }
+            pendingOpenURL = nil
+          }
+          Button("Don't Save", role: .destructive) {
+            if let url = pendingOpenURL {
+              loadProject(from: url)
+            }
+            pendingOpenURL = nil
+          }
+          Button("Cancel", role: .cancel) {
+            pendingOpenURL = nil
+          }
+        } message: {
+          Text("Your changes will be lost if you don't save them.")
         }
     }
     #if os(macOS)
@@ -140,6 +195,24 @@ struct ScreenShotMakerApp: App {
     }
   }
 
+  private func newProject() {
+    if projectState.hasUnsavedChanges {
+      pendingAction = { resetToNewProject() }
+      showUnsavedChangesDialog = true
+    } else {
+      resetToNewProject()
+    }
+  }
+
+  private func resetToNewProject() {
+    projectState.project = ScreenShotProject()
+    projectState.selectedScreenID = projectState.project.screens.first?.id
+    projectState.selectedDeviceIndex = 0
+    projectState.selectedLanguageIndex = 0
+    projectState.currentFileURL = nil
+    projectState.hasUnsavedChanges = false
+  }
+
   private func openProject() {
     if projectState.hasUnsavedChanges {
       pendingAction = { showOpenProject = true }
@@ -153,7 +226,7 @@ struct ScreenShotMakerApp: App {
     let accessing = url.startAccessingSecurityScopedResource()
     defer { if accessing { url.stopAccessingSecurityScopedResource() } }
     do {
-      let project = try ProjectFileService.load(from: url)
+      let project = try ProjectFileService.loadPackageFromURL(url)
       projectState.project = project
       projectState.selectedScreenID = project.screens.first?.id
       projectState.selectedDeviceIndex = 0
@@ -173,7 +246,7 @@ struct ScreenShotMakerApp: App {
       let accessing = url.startAccessingSecurityScopedResource()
       defer { if accessing { url.stopAccessingSecurityScopedResource() } }
       do {
-        try ProjectFileService.save(projectState.project, to: url)
+        try ProjectFileService.savePackageToURL(projectState.project, to: url)
         projectState.hasUnsavedChanges = false
       } catch {
         presentError(title: "Failed to Save Project", message: error.localizedDescription)
@@ -184,12 +257,8 @@ struct ScreenShotMakerApp: App {
   }
 
   private func saveProjectAs() {
-    do {
-      projectDocumentData = try ProjectFileService.encode(projectState.project)
-      showSaveProject = true
-    } catch {
-      presentError(title: "Failed to Save Project", message: error.localizedDescription)
-    }
+    projectDocument = ProjectFileDocument(project: projectState.project)
+    showSaveProject = true
   }
 
   private func presentError(title: String, message: String) {
@@ -197,26 +266,35 @@ struct ScreenShotMakerApp: App {
     errorMessage = message
     showError = true
   }
+
+  private func handleOpenURL(_ url: URL) {
+    if projectState.hasUnsavedChanges {
+      pendingOpenURL = url
+      showOpenURLConfirmation = true
+    } else {
+      loadProject(from: url)
+    }
+  }
 }
 
 // MARK: - FileDocument wrapper for project files
 
 struct ProjectFileDocument: FileDocument {
   static var readableContentTypes: [UTType] {
-    [UTType(filenameExtension: "ssmaker")!]
+    [.shotcraftProject]
   }
 
-  var data: Data
+  var project: ScreenShotProject
 
-  init(data: Data) {
-    self.data = data
+  init(project: ScreenShotProject) {
+    self.project = project
   }
 
   init(configuration: ReadConfiguration) throws {
-    data = configuration.file.regularFileContents ?? Data()
+    project = try ProjectFileService.loadPackage(from: configuration.file)
   }
 
   func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-    FileWrapper(regularFileWithContents: data)
+    try ProjectFileService.savePackage(project)
   }
 }

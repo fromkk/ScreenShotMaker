@@ -8,9 +8,21 @@ struct ContentView: View {
   @State private var columnVisibility: NavigationSplitViewVisibility =
     .doubleColumn
 
+  // File operation callbacks (connected from App level)
+  var onNewProject: (() -> Void)?
+  var onOpenProject: (() -> Void)?
+  var onSaveProject: (() -> Void)?
+  var onSaveProjectAs: (() -> Void)?
+
   var body: some View {
     NavigationSplitView(columnVisibility: $columnVisibility) {
-      SidebarView(state: projectState)
+      SidebarView(
+        state: projectState,
+        onNewProject: onNewProject,
+        onOpenProject: onOpenProject,
+        onSaveProject: onSaveProject,
+        onSaveProjectAs: onSaveProjectAs
+      )
         .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
     } detail: {
       CanvasView(state: projectState)
@@ -27,11 +39,7 @@ struct ContentView: View {
               ToolbarItem(placement: .topBarLeading) {
                 Button {
                   withAnimation {
-                    if columnVisibility == .detailOnly {
-                      columnVisibility = .doubleColumn
-                    } else {
-                      columnVisibility = .detailOnly
-                    }
+                    columnVisibility = .doubleColumn
                   }
                 } label: {
                   Image(systemName: "sidebar.leading")
