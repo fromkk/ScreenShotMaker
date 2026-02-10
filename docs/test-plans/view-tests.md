@@ -11,7 +11,7 @@
 | テスト名 | テスト対象 | 期待動作 |
 |---------|----------|---------|
 | `testEmptyStateWhenNoScreenSelected` | `selectedScreen == nil` | 「No screen selected」が表示される |
-| `testZoomScaleDefault` | 初期ズーム倍率 | `zoomScale == 0.5` (50%) |
+| `testZoomScaleDefault` | 初期ズーム倍率 | `zoomScale == 1.0` (100%) |
 | `testZoomScaleMinimum` | ズームアウト下限 | `zoomScale >= 0.2` (20%) |
 | `testZoomScaleMaximum` | ズームイン上限 | `zoomScale <= 2.0` (200%) |
 | `testPreviewDimensionsProportional` | プレビューのサイズ計算 | width/height 比がデバイスの portrait 比率と一致 |

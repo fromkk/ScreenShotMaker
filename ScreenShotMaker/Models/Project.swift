@@ -28,7 +28,15 @@ struct ScreenShotProject: Codable {
 struct Language: Codable, Identifiable, Hashable {
   var id: String { code }
   let code: String
-  let displayName: String
+  let displayName: LocalizedStringResource
+
+  static func == (lhs: Language, rhs: Language) -> Bool {
+    lhs.code == rhs.code
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(code)
+  }
 }
 
 extension Language {
@@ -57,11 +65,21 @@ final class ProjectState {
   var selectedScreenID: UUID?
   var selectedDeviceIndex: Int = 0
   var selectedLanguageIndex: Int = 0
-  var currentFileURL: URL?
+  var currentFileURL: URL? {
+    didSet {
+      if let url = currentFileURL {
+        saveBookmark(for: url)
+      } else {
+        UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
+      }
+    }
+  }
   var hasUnsavedChanges: Bool = false
   var undoManager: UndoManager?
-  var zoomScale: Double = 0.5
+  var zoomScale: Double = 1.0
   var copiedScreen: Screen?
+
+  private static let bookmarkKey = "lastProjectBookmark"
 
   func zoomIn() {
     withAnimation(.easeInOut(duration: 0.15)) {
@@ -232,5 +250,57 @@ final class ProjectState {
       state.hasUnsavedChanges = true
     }
     undoManager?.setActionName("Paste Screen")
+  }
+
+  // MARK: - Security-Scoped Bookmark Persistence
+
+  private func saveBookmark(for url: URL) {
+    do {
+      #if os(macOS)
+        let options: URL.BookmarkCreationOptions = [.withSecurityScope]
+      #else
+        let options: URL.BookmarkCreationOptions = []
+      #endif
+      let bookmarkData = try url.bookmarkData(
+        options: options,
+        includingResourceValuesForKeys: nil,
+        relativeTo: nil
+      )
+      UserDefaults.standard.set(bookmarkData, forKey: Self.bookmarkKey)
+    } catch {
+      // Silently fail — bookmark saving is best-effort
+      print("Failed to save bookmark: \(error)")
+    }
+  }
+
+  func restoreBookmarkedURL() -> URL? {
+    guard let bookmarkData = UserDefaults.standard.data(forKey: Self.bookmarkKey) else {
+      return nil
+    }
+    do {
+      var isStale = false
+      #if os(macOS)
+        let url = try URL(
+          resolvingBookmarkData: bookmarkData,
+          options: [.withSecurityScope],
+          relativeTo: nil,
+          bookmarkDataIsStale: &isStale
+        )
+      #else
+        let url = try URL(
+          resolvingBookmarkData: bookmarkData,
+          relativeTo: nil,
+          bookmarkDataIsStale: &isStale
+        )
+      #endif
+      if isStale {
+        saveBookmark(for: url)
+      }
+      return url
+    } catch {
+      print("Failed to restore bookmark: \(error)")
+      UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
+      return nil
+    }
   }
 }

@@ -40,6 +40,8 @@ struct PropertiesPanelView: View {
   var body: some View {
     ScrollView {
       VStack(spacing: 0) {
+        deviceLanguageSection
+        Divider()
         if let screen = selectedScreenBinding {
           layoutSection(screen: screen)
           Divider()
@@ -63,6 +65,28 @@ struct PropertiesPanelView: View {
       Button("OK") {}
     } message: {
       Text(translationError ?? "Unknown error")
+    }
+  }
+
+  // MARK: - Device & Language Section
+
+  private var deviceLanguageSection: some View {
+    VStack(spacing: 0) {
+      PropertySection(title: "Device") {
+        HStack {
+          DevicePicker(state: state)
+            .frame(maxWidth: .infinity, alignment: .leading)
+          DeviceManagerButton(state: state)
+        }
+      }
+      Divider()
+      PropertySection(title: "Language") {
+        HStack {
+          LanguagePicker(state: state)
+            .frame(maxWidth: .infinity, alignment: .leading)
+          LanguageManagerButton(state: state)
+        }
+      }
     }
   }
 
@@ -111,7 +135,9 @@ struct PropertiesPanelView: View {
                 ), format: .number
               )
               .textFieldStyle(.roundedBorder)
-              .keyboardType(.numberPad)
+              #if os(iOS)
+                .keyboardType(.numberPad)
+              #endif
               .frame(width: 60)
               .labelsHidden()
             }
@@ -216,8 +242,10 @@ struct PropertiesPanelView: View {
           textStyleToolbar(style: screen.subtitleStyle, label: "Subtitle")
         }
 
-        HStack(spacing: 8) {
-          PropertyField(label: "Font") {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Font")
+            .font(.subheadline)
+          HStack {
             Picker("", selection: screen.fontFamily) {
               ForEach(availableFontFamilies, id: \.self) { family in
                 Text(family)
@@ -228,13 +256,30 @@ struct PropertiesPanelView: View {
             .labelsHidden()
             .font(.system(size: 12))
           }
+        }
 
-          PropertyField(label: "Size") {
-            TextField("Size", value: screen.fontSize, format: .number)
-              .textFieldStyle(.roundedBorder)
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Font Size")
+            .font(.subheadline)
+          HStack {
+            Slider(
+              value: Binding(
+                get: { Double(screen.wrappedValue.fontSize) },
+                set: { screen.wrappedValue.fontSize = CGFloat($0) }
+              ), in: 16...200, step: 4)
+            TextField(
+              "",
+              value: Binding(
+                get: { Double(screen.wrappedValue.fontSize) },
+                set: { screen.wrappedValue.fontSize = CGFloat($0) }
+              ), format: .number
+            )
+            .textFieldStyle(.roundedBorder)
+            #if os(iOS)
               .keyboardType(.numberPad)
-              .font(.system(size: 12))
-              .frame(width: 60)
+            #endif
+            .frame(width: 60)
+            .labelsHidden()
           }
         }
 
@@ -469,7 +514,14 @@ struct PropertiesPanelView: View {
     }
   }
 
-  private func colorField(label: String, hex: String, onChange: @escaping (String) -> Void)
+  private func colorField(
+    label: LocalizedStringKey,
+    hex: String,
+    onChange:
+      @escaping (
+        String
+      ) -> Void
+  )
     -> some View
   {
     PropertyField(label: label) {
@@ -837,7 +889,7 @@ struct PropertiesPanelView: View {
 // MARK: - Helper Views
 
 private struct PropertySection<Content: View>: View {
-  let title: String
+  let title: LocalizedStringKey
   @ViewBuilder let content: Content
 
   var body: some View {
@@ -852,7 +904,7 @@ private struct PropertySection<Content: View>: View {
 }
 
 private struct PropertyField<Content: View>: View {
-  let label: String
+  let label: LocalizedStringKey
   @ViewBuilder let content: Content
 
   var body: some View {

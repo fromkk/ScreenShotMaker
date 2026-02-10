@@ -8,10 +8,22 @@ struct ContentView: View {
   @State private var columnVisibility: NavigationSplitViewVisibility =
     .doubleColumn
 
+  // File operation callbacks (connected from App level)
+  var onNewProject: (() -> Void)?
+  var onOpenProject: (() -> Void)?
+  var onSaveProject: (() -> Void)?
+  var onSaveProjectAs: (() -> Void)?
+
   var body: some View {
     NavigationSplitView(columnVisibility: $columnVisibility) {
-      SidebarView(state: projectState)
-        .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
+      SidebarView(
+        state: projectState,
+        onNewProject: onNewProject,
+        onOpenProject: onOpenProject,
+        onSaveProject: onSaveProject,
+        onSaveProjectAs: onSaveProjectAs
+      )
+      .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
     } detail: {
       CanvasView(state: projectState)
         .inspector(isPresented: $showInspector) {
@@ -27,23 +39,12 @@ struct ContentView: View {
               ToolbarItem(placement: .topBarLeading) {
                 Button {
                   withAnimation {
-                    if columnVisibility == .detailOnly {
-                      columnVisibility = .doubleColumn
-                    } else {
-                      columnVisibility = .detailOnly
-                    }
+                    columnVisibility = .doubleColumn
                   }
                 } label: {
                   Image(systemName: "sidebar.leading")
                 }
               }
-            }
-
-            ToolbarItemGroup(placement: .primaryAction) {
-              DevicePicker(state: projectState)
-              DeviceManagerButton(state: projectState)
-              LanguagePicker(state: projectState)
-              LanguageManagerButton(state: projectState)
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
@@ -61,11 +62,6 @@ struct ContentView: View {
             }
           #else
             ToolbarItemGroup(placement: .primaryAction) {
-              DevicePicker(state: projectState)
-              DeviceManagerButton(state: projectState)
-              LanguagePicker(state: projectState)
-              LanguageManagerButton(state: projectState)
-              Spacer()
               ExportButton(state: projectState)
               BatchExportButton(state: projectState)
 
@@ -90,7 +86,7 @@ struct ContentView: View {
   }
 }
 
-private struct DevicePicker: View {
+struct DevicePicker: View {
   @Bindable var state: ProjectState
 
   var body: some View {
@@ -103,11 +99,10 @@ private struct DevicePicker: View {
       }
     }
     .pickerStyle(.menu)
-    .frame(maxWidth: 200)
   }
 }
 
-private struct LanguagePicker: View {
+struct LanguagePicker: View {
   @Bindable var state: ProjectState
 
   var body: some View {
@@ -120,11 +115,10 @@ private struct LanguagePicker: View {
       }
     }
     .pickerStyle(.menu)
-    .frame(maxWidth: 150)
   }
 }
 
-private struct DeviceManagerButton: View {
+struct DeviceManagerButton: View {
   @Bindable var state: ProjectState
   @State private var showPopover = false
 
@@ -198,7 +192,7 @@ private struct DeviceManagerButton: View {
   }
 }
 
-private struct LanguageManagerButton: View {
+struct LanguageManagerButton: View {
   @Bindable var state: ProjectState
   @State private var showPopover = false
 

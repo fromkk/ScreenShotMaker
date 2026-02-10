@@ -2,8 +2,8 @@ import Foundation
 
 struct Template: Identifiable {
   let id: String
-  let name: String
-  let description: String
+  let name: LocalizedStringResource
+  let description: LocalizedStringResource
   let screens: [Screen]
 
   @MainActor func applyTo(_ state: ProjectState) {
