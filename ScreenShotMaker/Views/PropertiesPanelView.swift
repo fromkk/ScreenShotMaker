@@ -431,6 +431,16 @@ struct PropertiesPanelView: View {
         backgroundColorFields(screen: screen)
       }
     }
+    .fileImporter(
+      isPresented: $showBackgroundImagePicker,
+      allowedContentTypes: [.png, .jpeg],
+      allowsMultipleSelection: false
+    ) { result in
+      handleBackgroundImageImport(result: result, screen: screen)
+    }
+    .onChange(of: backgroundPhotosItem) { _, newItem in
+      handleBackgroundPhotosItem(newItem, screen: screen)
+    }
   }
 
   @ViewBuilder
@@ -744,21 +754,11 @@ struct PropertiesPanelView: View {
       Text(imageLoadError ?? "Unknown error")
     }
     .fileImporter(
-      isPresented: $showBackgroundImagePicker,
-      allowedContentTypes: [.png, .jpeg],
-      allowsMultipleSelection: false
-    ) { result in
-      handleBackgroundImageImport(result: result, screen: screen)
-    }
-    .fileImporter(
       isPresented: $showScreenshotImagePicker,
       allowedContentTypes: [.png, .jpeg],
       allowsMultipleSelection: false
     ) { result in
       handleScreenshotImageImport(result: result, screen: screen)
-    }
-    .onChange(of: backgroundPhotosItem) { _, newItem in
-      handleBackgroundPhotosItem(newItem, screen: screen)
     }
     .onChange(of: screenshotPhotosItem) { _, newItem in
       handleScreenshotPhotosItem(newItem, screen: screen)
