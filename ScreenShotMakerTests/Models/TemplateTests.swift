@@ -26,8 +26,8 @@ struct TemplateTests {
   @Test("Each template has a name and description")
   func testTemplatesHaveMetadata() {
     for template in Template.builtIn {
-      #expect(!template.name.isEmpty)
-      #expect(!template.description.isEmpty)
+      #expect(!"\(template.name)".isEmpty)
+      #expect(!"\(template.description)".isEmpty)
     }
   }
 

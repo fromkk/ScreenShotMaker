@@ -108,11 +108,13 @@ struct PropertiesPanelView: View {
           }
         }
 
-        Picker("Orientation", selection: screen.isLandscape) {
-          Label("Portrait", systemImage: "rectangle.portrait").tag(false)
-          Label("Landscape", systemImage: "rectangle").tag(true)
+        if state.selectedDevice?.category.supportsRotation ?? true {
+          Picker("Orientation", selection: screen.isLandscape) {
+            Label("Portrait", systemImage: "rectangle.portrait").tag(false)
+            Label("Landscape", systemImage: "rectangle").tag(true)
+          }
+          .pickerStyle(.segmented)
         }
-        .pickerStyle(.segmented)
 
         // Text-Image spacing control for Text Top and Text Bottom layouts
         if screen.wrappedValue.layoutPreset == .textTop

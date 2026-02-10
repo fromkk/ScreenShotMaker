@@ -53,8 +53,8 @@ struct CanvasView: View {
   }
 
   private func screenshotPreview(screen: Screen, device: DeviceSize) -> some View {
-    let w = screen.isLandscape ? device.landscapeWidth : device.portraitWidth
-    let h = screen.isLandscape ? device.landscapeHeight : device.portraitHeight
+    let w = device.effectiveWidth(isLandscape: screen.isLandscape)
+    let h = device.effectiveHeight(isLandscape: screen.isLandscape)
     let previewWidth = Double(w) * previewScale
     let previewHeight = Double(h) * previewScale
 
@@ -215,10 +215,10 @@ struct CanvasView: View {
 
     if screen.showDeviceFrame, let device = state.selectedDevice {
       let frameW =
-        Double(screen.isLandscape ? device.landscapeWidth : device.portraitWidth) * effectiveZoom
+        Double(device.effectiveWidth(isLandscape: screen.isLandscape)) * effectiveZoom
         * 0.15 * 0.7
       let frameH =
-        Double(screen.isLandscape ? device.landscapeHeight : device.portraitHeight) * effectiveZoom
+        Double(device.effectiveHeight(isLandscape: screen.isLandscape)) * effectiveZoom
         * 0.15 * 0.7
       DeviceFrameView(
         category: device.category,
@@ -332,8 +332,8 @@ struct CanvasView: View {
       }
 
       if let device = state.selectedDevice, let screen = state.selectedScreen {
-        let w = screen.isLandscape ? device.landscapeWidth : device.portraitWidth
-        let h = screen.isLandscape ? device.landscapeHeight : device.portraitHeight
+        let w = device.effectiveWidth(isLandscape: screen.isLandscape)
+        let h = device.effectiveHeight(isLandscape: screen.isLandscape)
         Text("\(w) × \(h) px")
           .font(.system(size: 10))
           .foregroundStyle(.tertiary)

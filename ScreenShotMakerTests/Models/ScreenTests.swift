@@ -13,7 +13,7 @@ struct ScreenTests {
     #expect(screen.layoutPreset == .textTop)
     #expect(screen.title == "")
     #expect(screen.subtitle == "")
-    #expect(screen.fontSize == 28)
+    #expect(screen.fontSize == 96)
     #expect(screen.textColorHex == "#FFFFFF")
     #expect(screen.showDeviceFrame == true)
     #expect(screen.fontFamily == "SF Pro Display")
