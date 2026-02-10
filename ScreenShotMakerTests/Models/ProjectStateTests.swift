@@ -446,7 +446,7 @@ struct ProjectStateTests {
     let screen = state.project.screens[0]
     #expect(screen.layoutPreset == .textTop)
     #expect(screen.fontFamily == "SF Pro Display")
-    #expect(screen.fontSize == 28)
+    #expect(screen.fontSize == 96.0)
     #expect(screen.showDeviceFrame == true)
     #expect(screen.isLandscape == false)
     #expect(screen.screenshotContentMode == .fit)

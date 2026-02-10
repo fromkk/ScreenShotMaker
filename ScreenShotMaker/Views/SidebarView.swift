@@ -13,6 +13,7 @@ struct SidebarView: View {
 
   var body: some View {
     VStack(spacing: 0) {
+      fileNameHeader
       header
       screenList
     }
@@ -49,6 +50,25 @@ struct SidebarView: View {
     #endif
   }
 
+  private var displayFileName: String {
+    let name =
+      state.currentFileURL?
+      .deletingPathExtension()
+      .lastPathComponent ?? "Untitled"
+    return state.hasUnsavedChanges ? "\(name) *" : name
+  }
+
+  private var fileNameHeader: some View {
+    Text(displayFileName)
+      .font(.subheadline)
+      .foregroundStyle(.secondary)
+      .lineLimit(1)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 16)
+      .padding(.top, 8)
+      .padding(.bottom, 4)
+  }
+
   private var header: some View {
     HStack {
       Text("SCREENS")
@@ -79,7 +99,8 @@ struct SidebarView: View {
           screen: screen,
           isSelected: state.selectedScreenID == screen.id,
           isEditing: editingScreenID == screen.id,
-          editingName: editingScreenID == screen.id ? $editingName : .constant("")
+          editingName: editingScreenID == screen.id
+            ? $editingName : .constant("")
         ) {
           commitRename(for: screen)
         }

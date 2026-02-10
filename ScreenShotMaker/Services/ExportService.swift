@@ -18,10 +18,10 @@ struct ExportableScreenView: View {
   }
 
   private var exportWidth: CGFloat {
-    CGFloat(screen.isLandscape ? device.landscapeWidth : device.portraitWidth)
+    CGFloat(device.effectiveWidth(isLandscape: screen.isLandscape))
   }
   private var exportHeight: CGFloat {
-    CGFloat(screen.isLandscape ? device.landscapeHeight : device.portraitHeight)
+    CGFloat(device.effectiveHeight(isLandscape: screen.isLandscape))
   }
 
   var body: some View {
@@ -157,9 +157,9 @@ struct ExportableScreenView: View {
       }
 
     if screen.showDeviceFrame {
-      let screenW = CGFloat(screen.isLandscape ? device.landscapeWidth : device.portraitWidth) * 0.7
+      let screenW = CGFloat(device.effectiveWidth(isLandscape: screen.isLandscape)) * 0.7
       let screenH =
-        CGFloat(screen.isLandscape ? device.landscapeHeight : device.portraitHeight) * 0.7
+        CGFloat(device.effectiveHeight(isLandscape: screen.isLandscape)) * 0.7
       DeviceFrameView(
         category: device.category,
         screenWidth: screenW,

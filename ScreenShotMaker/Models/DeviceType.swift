@@ -31,6 +31,17 @@ enum DeviceCategory: String, Codable, CaseIterable, Identifiable {
     case .appleVisionPro: "visionpro"
     }
   }
+
+  /// Whether this device category supports rotation between Portrait and Landscape.
+  /// iPhone / iPad can rotate; Mac, Apple TV, Apple Vision Pro, Apple Watch are fixed.
+  var supportsRotation: Bool {
+    switch self {
+    case .iPhone, .iPad:
+      return true
+    case .mac, .appleWatch, .appleTV, .appleVisionPro:
+      return false
+    }
+  }
 }
 
 struct DeviceSize: Codable, Identifiable, Hashable {
@@ -46,6 +57,26 @@ struct DeviceSize: Codable, Identifiable, Hashable {
 
   var sizeDescription: String {
     "\(portraitWidth) × \(portraitHeight)"
+  }
+
+  /// Returns the effective width considering whether the device supports rotation.
+  /// For devices that don't support rotation (Mac, TV, Vision Pro, Watch),
+  /// always returns `portraitWidth` regardless of `isLandscape`.
+  func effectiveWidth(isLandscape: Bool) -> Int {
+    if category.supportsRotation && isLandscape {
+      return landscapeWidth
+    }
+    return portraitWidth
+  }
+
+  /// Returns the effective height considering whether the device supports rotation.
+  /// For devices that don't support rotation (Mac, TV, Vision Pro, Watch),
+  /// always returns `portraitHeight` regardless of `isLandscape`.
+  func effectiveHeight(isLandscape: Bool) -> Int {
+    if category.supportsRotation && isLandscape {
+      return landscapeHeight
+    }
+    return portraitHeight
   }
 }
 
