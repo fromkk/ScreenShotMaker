@@ -173,7 +173,7 @@ struct Screen: Identifiable, Hashable {
     showDeviceFrame: Bool = true,
     isLandscape: Bool = false,
     fontFamily: String = FontHelper.defaultFontFamily,
-    fontSize: Double = 28,
+    fontSize: Double = 96,
     textColorHex: String = "#FFFFFF",
     titleStyle: TextStyle = TextStyle(isBold: true),
     subtitleStyle: TextStyle = TextStyle(isBold: false),

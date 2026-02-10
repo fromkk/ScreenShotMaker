@@ -34,118 +34,118 @@ struct ScreenShotMakerApp: App {
         onSaveProject: { saveProject() },
         onSaveProjectAs: { saveProjectAs() }
       )
-        #if os(macOS)
-          .frame(minWidth: 960, minHeight: 600)
-        #endif
-        .sheet(isPresented: $showTemplateGallery) {
-          TemplateGalleryView(state: projectState)
-        }
-        .onAppear {
-          if let url = projectState.restoreBookmarkedURL() {
-            let accessing = url.startAccessingSecurityScopedResource()
-            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-            do {
-              let project = try ProjectFileService.loadPackageFromURL(url)
-              projectState.project = project
-              projectState.selectedScreenID = project.screens.first?.id
-              projectState.selectedDeviceIndex = 0
-              projectState.selectedLanguageIndex = 0
-              projectState.currentFileURL = url
-              projectState.hasUnsavedChanges = false
-            } catch {
-              // Bookmark is invalid, show template gallery
-              UserDefaults.standard.removeObject(forKey: "lastProjectBookmark")
-              if showTemplateOnLaunch {
-                showTemplateGallery = true
-              }
-            }
-          } else if showTemplateOnLaunch {
-            showTemplateGallery = true
-          }
-        }
-        .fileImporter(
-          isPresented: $showOpenProject,
-          allowedContentTypes: [.shotcraftProject],
-          allowsMultipleSelection: false
-        ) { result in
-          switch result {
-          case .success(let urls):
-            if let url = urls.first {
-              loadProject(from: url)
-            }
-          case .failure(let error):
-            presentError(title: "Failed to Open Project", message: error.localizedDescription)
-          }
-        }
-        .fileExporter(
-          isPresented: $showSaveProject,
-          document: projectDocument,
-          contentType: .shotcraftProject,
-          defaultFilename: projectState.project.name + ".shotcraft"
-        ) { result in
-          switch result {
-          case .success(let url):
+      #if os(macOS)
+        .frame(minWidth: 960, minHeight: 600)
+      #endif
+      .sheet(isPresented: $showTemplateGallery) {
+        TemplateGalleryView(state: projectState)
+      }
+      .onAppear {
+        if let url = projectState.restoreBookmarkedURL() {
+          let accessing = url.startAccessingSecurityScopedResource()
+          defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+          do {
+            let project = try ProjectFileService.loadPackageFromURL(url)
+            projectState.project = project
+            projectState.selectedScreenID = project.screens.first?.id
+            projectState.selectedDeviceIndex = 0
+            projectState.selectedLanguageIndex = 0
             projectState.currentFileURL = url
             projectState.hasUnsavedChanges = false
-            #if os(macOS)
-              NSDocumentController.shared.noteNewRecentDocumentURL(url)
-            #endif
-          case .failure(let error):
-            presentError(title: "Failed to Save Project", message: error.localizedDescription)
-          }
-        }
-        .confirmationDialog(
-          "Do you want to save the current project?",
-          isPresented: $showUnsavedChangesDialog,
-          titleVisibility: .visible
-        ) {
-          Button("Save") {
-            saveProject()
-            pendingAction?()
-            pendingAction = nil
-          }
-          Button("Don't Save", role: .destructive) {
-            pendingAction?()
-            pendingAction = nil
-          }
-          Button("Cancel", role: .cancel) {
-            pendingAction = nil
-          }
-        } message: {
-          Text("Your changes will be lost if you don't save them.")
-        }
-        .alert(errorTitle, isPresented: $showError) {
-          Button("OK", role: .cancel) {}
-        } message: {
-          Text(errorMessage)
-        }
-        .onOpenURL { url in
-          handleOpenURL(url)
-        }
-        .confirmationDialog(
-          "Do you want to save the current project before opening another?",
-          isPresented: $showOpenURLConfirmation,
-          titleVisibility: .visible
-        ) {
-          Button("Save") {
-            saveProject()
-            if let url = pendingOpenURL {
-              loadProject(from: url)
+          } catch {
+            // Bookmark is invalid, show template gallery
+            UserDefaults.standard.removeObject(forKey: "lastProjectBookmark")
+            if showTemplateOnLaunch {
+              showTemplateGallery = true
             }
-            pendingOpenURL = nil
           }
-          Button("Don't Save", role: .destructive) {
-            if let url = pendingOpenURL {
-              loadProject(from: url)
-            }
-            pendingOpenURL = nil
-          }
-          Button("Cancel", role: .cancel) {
-            pendingOpenURL = nil
-          }
-        } message: {
-          Text("Your changes will be lost if you don't save them.")
+        } else if showTemplateOnLaunch {
+          showTemplateGallery = true
         }
+      }
+      .fileImporter(
+        isPresented: $showOpenProject,
+        allowedContentTypes: [.shotcraftProject],
+        allowsMultipleSelection: false
+      ) { result in
+        switch result {
+        case .success(let urls):
+          if let url = urls.first {
+            loadProject(from: url)
+          }
+        case .failure(let error):
+          presentError(title: "Failed to Open Project", message: error.localizedDescription)
+        }
+      }
+      .fileExporter(
+        isPresented: $showSaveProject,
+        document: projectDocument,
+        contentType: .shotcraftProject,
+        defaultFilename: projectState.project.name + ".shotcraft"
+      ) { result in
+        switch result {
+        case .success(let url):
+          projectState.currentFileURL = url
+          projectState.hasUnsavedChanges = false
+          #if os(macOS)
+            NSDocumentController.shared.noteNewRecentDocumentURL(url)
+          #endif
+        case .failure(let error):
+          presentError(title: "Failed to Save Project", message: error.localizedDescription)
+        }
+      }
+      .confirmationDialog(
+        "Do you want to save the current project?",
+        isPresented: $showUnsavedChangesDialog,
+        titleVisibility: .visible
+      ) {
+        Button("Save") {
+          saveProject()
+          pendingAction?()
+          pendingAction = nil
+        }
+        Button("Don't Save", role: .destructive) {
+          pendingAction?()
+          pendingAction = nil
+        }
+        Button("Cancel", role: .cancel) {
+          pendingAction = nil
+        }
+      } message: {
+        Text("Your changes will be lost if you don't save them.")
+      }
+      .alert(errorTitle, isPresented: $showError) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(errorMessage)
+      }
+      .onOpenURL { url in
+        handleOpenURL(url)
+      }
+      .confirmationDialog(
+        "Do you want to save the current project before opening another?",
+        isPresented: $showOpenURLConfirmation,
+        titleVisibility: .visible
+      ) {
+        Button("Save") {
+          saveProject()
+          if let url = pendingOpenURL {
+            loadProject(from: url)
+          }
+          pendingOpenURL = nil
+        }
+        Button("Don't Save", role: .destructive) {
+          if let url = pendingOpenURL {
+            loadProject(from: url)
+          }
+          pendingOpenURL = nil
+        }
+        Button("Cancel", role: .cancel) {
+          pendingOpenURL = nil
+        }
+      } message: {
+        Text("Your changes will be lost if you don't save them.")
+      }
     }
     #if os(macOS)
       .windowStyle(.titleBar)

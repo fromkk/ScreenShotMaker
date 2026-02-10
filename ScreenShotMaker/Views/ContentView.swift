@@ -23,7 +23,7 @@ struct ContentView: View {
         onSaveProject: onSaveProject,
         onSaveProjectAs: onSaveProjectAs
       )
-        .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
+      .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
     } detail: {
       CanvasView(state: projectState)
         .inspector(isPresented: $showInspector) {
@@ -48,13 +48,6 @@ struct ContentView: View {
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
-              DevicePicker(state: projectState)
-              DeviceManagerButton(state: projectState)
-              LanguagePicker(state: projectState)
-              LanguageManagerButton(state: projectState)
-            }
-
-            ToolbarItemGroup(placement: .primaryAction) {
               ExportButton(state: projectState)
               BatchExportButton(state: projectState)
 
@@ -69,11 +62,6 @@ struct ContentView: View {
             }
           #else
             ToolbarItemGroup(placement: .primaryAction) {
-              DevicePicker(state: projectState)
-              DeviceManagerButton(state: projectState)
-              LanguagePicker(state: projectState)
-              LanguageManagerButton(state: projectState)
-              Spacer()
               ExportButton(state: projectState)
               BatchExportButton(state: projectState)
 
@@ -98,7 +86,7 @@ struct ContentView: View {
   }
 }
 
-private struct DevicePicker: View {
+struct DevicePicker: View {
   @Bindable var state: ProjectState
 
   var body: some View {
@@ -111,11 +99,10 @@ private struct DevicePicker: View {
       }
     }
     .pickerStyle(.menu)
-    .frame(maxWidth: 200)
   }
 }
 
-private struct LanguagePicker: View {
+struct LanguagePicker: View {
   @Bindable var state: ProjectState
 
   var body: some View {
@@ -128,11 +115,10 @@ private struct LanguagePicker: View {
       }
     }
     .pickerStyle(.menu)
-    .frame(maxWidth: 150)
   }
 }
 
-private struct DeviceManagerButton: View {
+struct DeviceManagerButton: View {
   @Bindable var state: ProjectState
   @State private var showPopover = false
 
@@ -206,7 +192,7 @@ private struct DeviceManagerButton: View {
   }
 }
 
-private struct LanguageManagerButton: View {
+struct LanguageManagerButton: View {
   @Bindable var state: ProjectState
   @State private var showPopover = false
 

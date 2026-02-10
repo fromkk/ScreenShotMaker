@@ -28,7 +28,15 @@ struct ScreenShotProject: Codable {
 struct Language: Codable, Identifiable, Hashable {
   var id: String { code }
   let code: String
-  let displayName: String
+  let displayName: LocalizedStringResource
+
+  static func == (lhs: Language, rhs: Language) -> Bool {
+    lhs.code == rhs.code
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(code)
+  }
 }
 
 extension Language {
@@ -68,7 +76,7 @@ final class ProjectState {
   }
   var hasUnsavedChanges: Bool = false
   var undoManager: UndoManager?
-  var zoomScale: Double = 0.5
+  var zoomScale: Double = 1.0
   var copiedScreen: Screen?
 
   private static let bookmarkKey = "lastProjectBookmark"

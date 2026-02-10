@@ -17,35 +17,35 @@ struct SidebarView: View {
       screenList
     }
     #if os(iOS)
-    .toolbar {
-      ToolbarItem(placement: .topBarLeading) {
-        Menu {
-          Button {
-            onNewProject?()
+      .toolbar {
+        ToolbarItem(placement: .topBarLeading) {
+          Menu {
+            Button {
+              onNewProject?()
+            } label: {
+              Label("New Project", systemImage: "doc.badge.plus")
+            }
+            Button {
+              onOpenProject?()
+            } label: {
+              Label("Open…", systemImage: "folder")
+            }
+            Divider()
+            Button {
+              onSaveProject?()
+            } label: {
+              Label("Save", systemImage: "square.and.arrow.down")
+            }
+            Button {
+              onSaveProjectAs?()
+            } label: {
+              Label("Save As…", systemImage: "square.and.arrow.down.on.square")
+            }
           } label: {
-            Label("New Project", systemImage: "doc.badge.plus")
+            Image(systemName: "doc.badge.ellipsis")
           }
-          Button {
-            onOpenProject?()
-          } label: {
-            Label("Open…", systemImage: "folder")
-          }
-          Divider()
-          Button {
-            onSaveProject?()
-          } label: {
-            Label("Save", systemImage: "square.and.arrow.down")
-          }
-          Button {
-            onSaveProjectAs?()
-          } label: {
-            Label("Save As…", systemImage: "square.and.arrow.down.on.square")
-          }
-        } label: {
-          Image(systemName: "doc.badge.ellipsis")
         }
       }
-    }
     #endif
   }
 

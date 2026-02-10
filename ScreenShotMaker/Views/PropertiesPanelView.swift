@@ -40,6 +40,8 @@ struct PropertiesPanelView: View {
   var body: some View {
     ScrollView {
       VStack(spacing: 0) {
+        deviceLanguageSection
+        Divider()
         if let screen = selectedScreenBinding {
           layoutSection(screen: screen)
           Divider()
@@ -63,6 +65,28 @@ struct PropertiesPanelView: View {
       Button("OK") {}
     } message: {
       Text(translationError ?? "Unknown error")
+    }
+  }
+
+  // MARK: - Device & Language Section
+
+  private var deviceLanguageSection: some View {
+    VStack(spacing: 0) {
+      PropertySection(title: "Device") {
+        HStack {
+          DevicePicker(state: state)
+            .frame(maxWidth: .infinity, alignment: .leading)
+          DeviceManagerButton(state: state)
+        }
+      }
+      Divider()
+      PropertySection(title: "Language") {
+        HStack {
+          LanguagePicker(state: state)
+            .frame(maxWidth: .infinity, alignment: .leading)
+          LanguageManagerButton(state: state)
+        }
+      }
     }
   }
 
@@ -490,7 +514,14 @@ struct PropertiesPanelView: View {
     }
   }
 
-  private func colorField(label: String, hex: String, onChange: @escaping (String) -> Void)
+  private func colorField(
+    label: LocalizedStringKey,
+    hex: String,
+    onChange:
+      @escaping (
+        String
+      ) -> Void
+  )
     -> some View
   {
     PropertyField(label: label) {
@@ -858,7 +889,7 @@ struct PropertiesPanelView: View {
 // MARK: - Helper Views
 
 private struct PropertySection<Content: View>: View {
-  let title: String
+  let title: LocalizedStringKey
   @ViewBuilder let content: Content
 
   var body: some View {
@@ -873,7 +904,7 @@ private struct PropertySection<Content: View>: View {
 }
 
 private struct PropertyField<Content: View>: View {
-  let label: String
+  let label: LocalizedStringKey
   @ViewBuilder let content: Content
 
   var body: some View {
