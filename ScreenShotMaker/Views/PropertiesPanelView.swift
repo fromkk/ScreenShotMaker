@@ -102,7 +102,7 @@ struct PropertiesPanelView: View {
                 value: Binding(
                   get: { Double(screen.wrappedValue.textToImageSpacing) },
                   set: { screen.wrappedValue.textToImageSpacing = CGFloat($0) }
-                ), in: 0...100, step: 5)
+                ), in: 0...100, step: 4)
               TextField(
                 "",
                 value: Binding(
@@ -111,6 +111,7 @@ struct PropertiesPanelView: View {
                 ), format: .number
               )
               .textFieldStyle(.roundedBorder)
+              .keyboardType(.numberPad)
               .frame(width: 60)
               .labelsHidden()
             }
@@ -231,6 +232,7 @@ struct PropertiesPanelView: View {
           PropertyField(label: "Size") {
             TextField("Size", value: screen.fontSize, format: .number)
               .textFieldStyle(.roundedBorder)
+              .keyboardType(.numberPad)
               .font(.system(size: 12))
               .frame(width: 60)
           }
@@ -471,7 +473,7 @@ struct PropertiesPanelView: View {
     -> some View
   {
     PropertyField(label: label) {
-      HStack(spacing: 6) {
+      HStack(spacing: 12) {
         ColorPicker(
           "",
           selection: Binding(
@@ -928,4 +930,8 @@ private struct LayoutPresetButton: View {
     }
     .padding(6)
   }
+}
+
+#Preview {
+  PropertiesPanelView(state: .init())
 }

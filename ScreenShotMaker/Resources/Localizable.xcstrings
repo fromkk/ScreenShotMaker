@@ -570,8 +570,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "塗りつぶし"
+            "state" : "translated",
+            "value" : "Fill"
           }
         }
       }
@@ -586,8 +586,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "フィット"
+            "state" : "translated",
+            "value" : "Fit"
           }
         }
       }
