@@ -216,8 +216,10 @@ struct PropertiesPanelView: View {
           textStyleToolbar(style: screen.subtitleStyle, label: "Subtitle")
         }
 
-        HStack(spacing: 8) {
-          PropertyField(label: "Font") {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Font")
+            .font(.subheadline)
+          HStack {
             Picker("", selection: screen.fontFamily) {
               ForEach(availableFontFamilies, id: \.self) { family in
                 Text(family)
@@ -228,13 +230,28 @@ struct PropertiesPanelView: View {
             .labelsHidden()
             .font(.system(size: 12))
           }
+        }
 
-          PropertyField(label: "Size") {
-            TextField("Size", value: screen.fontSize, format: .number)
-              .textFieldStyle(.roundedBorder)
-              .keyboardType(.numberPad)
-              .font(.system(size: 12))
-              .frame(width: 60)
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Font Size")
+            .font(.subheadline)
+          HStack {
+            Slider(
+              value: Binding(
+                get: { Double(screen.wrappedValue.fontSize) },
+                set: { screen.wrappedValue.fontSize = CGFloat($0) }
+              ), in: 16...200, step: 4)
+            TextField(
+              "",
+              value: Binding(
+                get: { Double(screen.wrappedValue.fontSize) },
+                set: { screen.wrappedValue.fontSize = CGFloat($0) }
+              ), format: .number
+            )
+            .textFieldStyle(.roundedBorder)
+            .keyboardType(.numberPad)
+            .frame(width: 60)
+            .labelsHidden()
           }
         }
 
