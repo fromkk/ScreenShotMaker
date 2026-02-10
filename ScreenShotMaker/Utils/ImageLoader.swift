@@ -1,6 +1,12 @@
 import Foundation
 import UniformTypeIdentifiers
 
+#if canImport(AppKit)
+  import AppKit
+#elseif canImport(UIKit)
+  import UIKit
+#endif
+
 enum ImageLoadError: LocalizedError, Equatable {
   case invalidFormat
   case fileTooLarge(size: Int)
@@ -36,6 +42,20 @@ enum ImageLoader {
 
     guard data.count <= maxFileSize else {
       throw ImageLoadError.fileTooLarge(size: data.count)
+    }
+
+    return data
+  }
+
+  /// Validate and return image data provided directly (e.g. from iPad Photos drag).
+  static func loadImageData(_ data: Data) throws -> Data {
+    guard data.count <= maxFileSize else {
+      throw ImageLoadError.fileTooLarge(size: data.count)
+    }
+
+    // Verify the data is a valid image by attempting to create a PlatformImage
+    guard PlatformImage(data: data) != nil else {
+      throw ImageLoadError.invalidFormat
     }
 
     return data

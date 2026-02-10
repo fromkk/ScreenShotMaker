@@ -209,7 +209,7 @@ struct CanvasView: View {
           }
         }
       }
-      .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+      .onDrop(of: [.fileURL, .image], isTargeted: nil) { providers in
         handleDrop(providers: providers)
       }
 
@@ -235,25 +235,58 @@ struct CanvasView: View {
 
   private func handleDrop(providers: [NSItemProvider]) -> Bool {
     guard let provider = providers.first else { return false }
-    provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
-      guard let data = data as? Data,
-        let url = URL(dataRepresentation: data, relativeTo: nil)
-      else { return }
-      DispatchQueue.main.async {
-        do {
-          let imageData = try ImageLoader.loadImage(from: url)
-          if let category = state.selectedDevice?.category {
-            let languageCode = state.selectedLanguage?.code ?? "en"
-            state.selectedScreen?.setScreenshotImageData(
-              imageData, for: languageCode, category: category)
+
+    // Try loading as file URL first (macOS, Files app)
+    if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+      provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
+        guard let data = data as? Data,
+          let url = URL(dataRepresentation: data, relativeTo: nil)
+        else { return }
+        DispatchQueue.main.async {
+          do {
+            let imageData = try ImageLoader.loadImage(from: url)
+            if let category = state.selectedDevice?.category {
+              let languageCode = state.selectedLanguage?.code ?? "en"
+              state.selectedScreen?.setScreenshotImageData(
+                imageData, for: languageCode, category: category)
+            }
+          } catch {
+            imageLoadError = error.localizedDescription
+            showImageLoadError = true
           }
-        } catch {
-          imageLoadError = error.localizedDescription
-          showImageLoadError = true
         }
       }
+      return true
     }
-    return true
+
+    // Fallback: load as image data directly (iPad Photos app drag)
+    if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+      provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, error in
+        DispatchQueue.main.async {
+          guard let data = data else {
+            if let error = error {
+              imageLoadError = error.localizedDescription
+              showImageLoadError = true
+            }
+            return
+          }
+          do {
+            let imageData = try ImageLoader.loadImageData(data)
+            if let category = state.selectedDevice?.category {
+              let languageCode = state.selectedLanguage?.code ?? "en"
+              state.selectedScreen?.setScreenshotImageData(
+                imageData, for: languageCode, category: category)
+            }
+          } catch {
+            imageLoadError = error.localizedDescription
+            showImageLoadError = true
+          }
+        }
+      }
+      return true
+    }
+
+    return false
   }
 
   private var emptyState: some View {
