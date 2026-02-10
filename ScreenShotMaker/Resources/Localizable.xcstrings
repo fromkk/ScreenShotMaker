@@ -322,7 +322,20 @@
       }
     },
     "Do you want to save the current project before opening another?" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do you want to save the current project before opening another?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のプロジェクトを開く前に、現在のプロジェクトを保存しますか？"
+          }
+        }
+      }
     },
     "Do you want to save the current project?" : {
       "localizations" : {
@@ -552,13 +565,13 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Export Complete"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "書き出しが完了しました"
           }
         }
@@ -744,13 +757,13 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Image"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "画像"
           }
         }
@@ -760,13 +773,13 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Image Load Error"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "画像の読み込みエラー"
           }
         }
@@ -776,13 +789,13 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Image-Text Spacing"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "画像とテキストの間隔"
           }
         }
@@ -792,13 +805,13 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Landscape"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "横"
           }
         }
@@ -808,13 +821,13 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Language"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "言語"
           }
         }
@@ -824,13 +837,13 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Move Screen"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "スクリーンを移動"
           }
         }
@@ -853,7 +866,20 @@
       }
     },
     "New Project" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Project"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新規プロジェクト"
+          }
+        }
+      }
     },
     "No screen selected" : {
       "localizations" : {
@@ -920,7 +946,20 @@
       }
     },
     "Open…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開く…"
+          }
+        }
+      }
     },
     "Orientation" : {
       "localizations" : {
@@ -1018,9 +1057,6 @@
         }
       }
     },
-    "Project" : {
-
-    },
     "Rename" : {
       "localizations" : {
         "en" : {
@@ -1086,7 +1122,20 @@
       }
     },
     "Save As…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save As…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別名で保存…"
+          }
+        }
+      }
     },
     "Save to Files" : {
       "localizations" : {
@@ -1260,23 +1309,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dynamic Island を表示"
-          }
-        }
-      }
-    },
-    "Size" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Size"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サイズ"
           }
         }
       }

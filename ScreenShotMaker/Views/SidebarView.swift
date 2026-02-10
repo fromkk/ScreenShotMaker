@@ -13,54 +13,41 @@ struct SidebarView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      #if os(iOS)
-        projectMenu
-        Divider()
-      #endif
       header
       screenList
     }
-  }
-
-  #if os(iOS)
-  private var projectMenu: some View {
-    HStack(spacing: 12) {
-      Menu {
-        Button {
-          onNewProject?()
+    #if os(iOS)
+    .toolbar {
+      ToolbarItem(placement: .topBarLeading) {
+        Menu {
+          Button {
+            onNewProject?()
+          } label: {
+            Label("New Project", systemImage: "doc.badge.plus")
+          }
+          Button {
+            onOpenProject?()
+          } label: {
+            Label("Open…", systemImage: "folder")
+          }
+          Divider()
+          Button {
+            onSaveProject?()
+          } label: {
+            Label("Save", systemImage: "square.and.arrow.down")
+          }
+          Button {
+            onSaveProjectAs?()
+          } label: {
+            Label("Save As…", systemImage: "square.and.arrow.down.on.square")
+          }
         } label: {
-          Label("New Project", systemImage: "doc.badge.plus")
-        }
-        Button {
-          onOpenProject?()
-        } label: {
-          Label("Open…", systemImage: "folder")
-        }
-        Divider()
-        Button {
-          onSaveProject?()
-        } label: {
-          Label("Save", systemImage: "square.and.arrow.down")
-        }
-        Button {
-          onSaveProjectAs?()
-        } label: {
-          Label("Save As…", systemImage: "square.and.arrow.down.on.square")
-        }
-      } label: {
-        HStack(spacing: 4) {
           Image(systemName: "doc.badge.ellipsis")
-          Text("Project")
-            .font(.system(size: 13, weight: .medium))
         }
       }
-
-      Spacer()
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 8)
+    #endif
   }
-  #endif
 
   private var header: some View {
     HStack {
