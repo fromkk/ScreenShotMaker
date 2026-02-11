@@ -156,8 +156,8 @@ struct CanvasView: View {
     let localizedText = screen.text(for: langCode)
     let sf = scaleFactor(for: device)
     let ps = previewScale
-    let titleSize = ScalingService.scaledFontSize(screen.fontSize, factor: sf) * ps
-    let subtitleSize = ScalingService.scaledFontSize(screen.fontSize * 0.6, factor: sf) * ps
+    let titleSize = ScalingService.scaledFontSize(screen.fontSize(for: device.category), factor: sf) * ps
+    let subtitleSize = ScalingService.scaledFontSize(screen.fontSize(for: device.category) * 0.6, factor: sf) * ps
     return VStack(spacing: ScalingService.scaledPadding(12, factor: sf) * ps) {
       if !localizedText.title.isEmpty {
         Text(localizedText.title)

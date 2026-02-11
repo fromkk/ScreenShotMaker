@@ -219,7 +219,7 @@ struct ProjectStateTests {
     #expect(duplicated.layoutPreset == original.layoutPreset)
     #expect(duplicated.background == original.background)
     #expect(duplicated.fontFamily == original.fontFamily)
-    #expect(duplicated.fontSize == original.fontSize)
+    #expect(duplicated.fontSize(for: .iPhone) == original.fontSize(for: .iPhone))
     #expect(duplicated.textColorHex == original.textColorHex)
     #expect(duplicated.showDeviceFrame == original.showDeviceFrame)
     #expect(duplicated.isLandscape == original.isLandscape)
@@ -368,7 +368,7 @@ struct ProjectStateTests {
     screen.layoutPreset = .textBottom
     screen.background = .solidColor(HexColor("#FF0000"))
     screen.fontFamily = "Helvetica"
-    screen.fontSize = 40
+    screen.setFontSize(40, for: .iPhone)
     screen.textColorHex = "#000000"
     screen.showDeviceFrame = false
     screen.isLandscape = true
@@ -390,7 +390,7 @@ struct ProjectStateTests {
     let newScreen = state.project.screens.last!
     #expect(newScreen.layoutPreset == .textBottom)
     #expect(newScreen.fontFamily == "Helvetica")
-    #expect(newScreen.fontSize == 40)
+    #expect(newScreen.fontSize(for: .iPhone) == 40)
     #expect(newScreen.textColorHex == "#000000")
     #expect(newScreen.showDeviceFrame == false)
     #expect(newScreen.isLandscape == true)
@@ -446,7 +446,7 @@ struct ProjectStateTests {
     let screen = state.project.screens[0]
     #expect(screen.layoutPreset == .textTop)
     #expect(screen.fontFamily == "SF Pro Display")
-    #expect(screen.fontSize == 96.0)
+    #expect(screen.fontSize(for: .iPhone) == 96.0)
     #expect(screen.showDeviceFrame == true)
     #expect(screen.isLandscape == false)
     #expect(screen.screenshotContentMode == .fit)

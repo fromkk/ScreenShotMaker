@@ -13,7 +13,7 @@ struct ScreenTests {
     #expect(screen.layoutPreset == .textTop)
     #expect(screen.title == "")
     #expect(screen.subtitle == "")
-    #expect(screen.fontSize == 96)
+    #expect(screen.fontSize(for: .iPhone) == 96)
     #expect(screen.textColorHex == "#FFFFFF")
     #expect(screen.showDeviceFrame == true)
     #expect(screen.fontFamily == "SF Pro Display")
@@ -43,7 +43,7 @@ struct ScreenTests {
     #expect(decoded.subtitle == screen.subtitle)
     #expect(decoded.showDeviceFrame == screen.showDeviceFrame)
     #expect(decoded.fontFamily == screen.fontFamily)
-    #expect(decoded.fontSize == screen.fontSize)
+    #expect(decoded.fontSize(for: .iPhone) == screen.fontSize(for: .iPhone))
     #expect(decoded.textColorHex == screen.textColorHex)
   }
 
@@ -68,7 +68,7 @@ struct ScreenTests {
     #expect(screen.layoutPreset == .screenshotOnly)
     #expect(screen.title == "Title")
     #expect(screen.subtitle == "Sub")
-    #expect(screen.fontSize == 40)
+    #expect(screen.fontSize(for: .iPhone) == 40)
   }
 
   // MARK: - Localized Text Tests
@@ -458,5 +458,72 @@ struct ScreenTests {
     #expect(decoded.screenshotImageData(for: "ja", category: .iPhone) == Data([4, 5, 6]))
     #expect(decoded.screenshotImageData(for: "en", category: .iPad) == Data([7, 8, 9]))
     #expect(decoded.screenshotImageData(for: "ja", category: .iPad) == nil)
+  }
+
+  // MARK: - Per-Device Font Size Tests (#056)
+
+  @Test("Screen stores font sizes per device category")
+  func testPerDeviceFontSizes() {
+    var screen = Screen()
+    screen.setFontSize(96, for: .iPhone)
+    screen.setFontSize(120, for: .iPad)
+    screen.setFontSize(80, for: .mac)
+
+    #expect(screen.fontSize(for: .iPhone) == 96)
+    #expect(screen.fontSize(for: .iPad) == 120)
+    #expect(screen.fontSize(for: .mac) == 80)
+  }
+
+  @Test("Screen returns default font size for unset device category")
+  func testPerDeviceFontSizeDefault() {
+    let screen = Screen()
+    #expect(screen.fontSize(for: .iPhone) == Screen.defaultFontSize)
+    #expect(screen.fontSize(for: .iPad) == Screen.defaultFontSize)
+    #expect(screen.fontSize(for: .mac) == Screen.defaultFontSize)
+  }
+
+  @Test("Screen font sizes encode and decode correctly")
+  func testPerDeviceFontSizeCodable() throws {
+    var screen = Screen(name: "Font Size Test")
+    screen.setFontSize(80, for: .iPhone)
+    screen.setFontSize(120, for: .iPad)
+
+    let data = try JSONEncoder().encode(screen)
+    let decoded = try JSONDecoder().decode(Screen.self, from: data)
+
+    #expect(decoded.fontSize(for: .iPhone) == 80)
+    #expect(decoded.fontSize(for: .iPad) == 120)
+  }
+
+  @Test("Screen migrates legacy single fontSize to per-device fontSizes")
+  func testFontSizeMigrationFromLegacy() throws {
+    let legacyJSON = """
+      {
+          "id": "00000000-0000-0000-0000-000000000099",
+          "name": "Screen 1",
+          "layoutPreset": "textTop",
+          "title": "Title",
+          "subtitle": "Sub",
+          "background": {"solidColor": {"_0": {"hex": "#FF0000"}}},
+          "showDeviceFrame": true,
+          "fontFamily": "SF Pro Display",
+          "fontSize": 48,
+          "textColorHex": "#FFFFFF"
+      }
+      """
+    let data = Data(legacyJSON.utf8)
+    let screen = try JSONDecoder().decode(Screen.self, from: data)
+
+    // Legacy fontSize should be migrated to all device categories
+    #expect(screen.fontSize(for: .iPhone) == 48)
+    #expect(screen.fontSize(for: .iPad) == 48)
+    #expect(screen.fontSize(for: .mac) == 48)
+  }
+
+  @Test("Screen with custom fontSize init sets value for all categories")
+  func testCustomFontSizeInit() {
+    let screen = Screen(fontSize: 40)
+    #expect(screen.fontSize(for: .iPhone) == 40)
+    #expect(screen.fontSize(for: .iPad) == 40)
   }
 }

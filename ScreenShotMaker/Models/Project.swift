@@ -129,7 +129,7 @@ final class ProjectState {
   func addScreen() {
     let count = project.screens.count + 1
     let previousScreen = selectedScreen ?? project.screens.last
-    let screen: Screen
+    var screen: Screen
     if let prev = previousScreen {
       screen = Screen(
         name: "Screen \(count)",
@@ -138,13 +138,13 @@ final class ProjectState {
         showDeviceFrame: prev.showDeviceFrame,
         isLandscape: prev.isLandscape,
         fontFamily: prev.fontFamily,
-        fontSize: prev.fontSize,
         textColorHex: prev.textColorHex,
         titleStyle: prev.titleStyle,
         subtitleStyle: prev.subtitleStyle,
         deviceFrameConfig: prev.deviceFrameConfig,
         screenshotContentMode: prev.screenshotContentMode
       )
+      screen.fontSizes = prev.fontSizes
     } else {
       screen = Screen(name: "Screen \(count)")
     }

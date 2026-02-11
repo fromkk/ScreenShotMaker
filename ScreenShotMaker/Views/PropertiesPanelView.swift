@@ -266,14 +266,26 @@ struct PropertiesPanelView: View {
           HStack {
             Slider(
               value: Binding(
-                get: { Double(screen.wrappedValue.fontSize) },
-                set: { screen.wrappedValue.fontSize = CGFloat($0) }
+                get: {
+                  let category = state.selectedDevice?.category ?? .iPhone
+                  return screen.wrappedValue.fontSize(for: category)
+                },
+                set: {
+                  let category = state.selectedDevice?.category ?? .iPhone
+                  screen.wrappedValue.setFontSize($0, for: category)
+                }
               ), in: 16...200, step: 4)
             TextField(
               "",
               value: Binding(
-                get: { Double(screen.wrappedValue.fontSize) },
-                set: { screen.wrappedValue.fontSize = CGFloat($0) }
+                get: {
+                  let category = state.selectedDevice?.category ?? .iPhone
+                  return screen.wrappedValue.fontSize(for: category)
+                },
+                set: {
+                  let category = state.selectedDevice?.category ?? .iPhone
+                  screen.wrappedValue.setFontSize($0, for: category)
+                }
               ), format: .number
             )
             .textFieldStyle(.roundedBorder)

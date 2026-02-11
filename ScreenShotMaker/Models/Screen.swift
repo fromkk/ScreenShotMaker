@@ -68,8 +68,20 @@ struct Screen: Identifiable, Hashable {
   var showDeviceFrame: Bool
   var isLandscape: Bool
   var fontFamily: String
-  var fontSize: Double
+  var fontSizes: [String: Double]
   var textColorHex: String
+
+  static let defaultFontSize: Double = 96
+
+  /// Get font size for a specific device category
+  func fontSize(for category: DeviceCategory) -> Double {
+    fontSizes[category.rawValue] ?? Screen.defaultFontSize
+  }
+
+  /// Set font size for a specific device category
+  mutating func setFontSize(_ size: Double, for category: DeviceCategory) {
+    fontSizes[category.rawValue] = size
+  }
   var titleStyle: TextStyle
   var subtitleStyle: TextStyle
   var deviceFrameConfig: DeviceFrameConfig
@@ -173,7 +185,7 @@ struct Screen: Identifiable, Hashable {
     showDeviceFrame: Bool = true,
     isLandscape: Bool = false,
     fontFamily: String = FontHelper.defaultFontFamily,
-    fontSize: Double = 96,
+    fontSize: Double = Screen.defaultFontSize,
     textColorHex: String = "#FFFFFF",
     titleStyle: TextStyle = TextStyle(isBold: true),
     subtitleStyle: TextStyle = TextStyle(isBold: false),
@@ -190,7 +202,7 @@ struct Screen: Identifiable, Hashable {
     self.showDeviceFrame = showDeviceFrame
     self.isLandscape = isLandscape
     self.fontFamily = fontFamily
-    self.fontSize = fontSize
+    self.fontSizes = fontSize != Screen.defaultFontSize ? DeviceCategory.allCases.reduce(into: [String: Double]()) { $0[$1.rawValue] = fontSize } : [:]
     self.textColorHex = textColorHex
     self.titleStyle = titleStyle
     self.subtitleStyle = subtitleStyle
@@ -205,7 +217,7 @@ struct Screen: Identifiable, Hashable {
 extension Screen: Codable {
   enum CodingKeys: String, CodingKey {
     case id, name, layoutPreset, localizedTexts, background, screenshotImages
-    case showDeviceFrame, isLandscape, fontFamily, fontSize, textColorHex
+    case showDeviceFrame, isLandscape, fontFamily, fontSize, fontSizes, textColorHex
     case titleStyle, subtitleStyle, deviceFrameConfig, screenshotContentMode
     case textToImageSpacing
     // Legacy keys
@@ -245,7 +257,15 @@ extension Screen: Codable {
     showDeviceFrame = try container.decode(Bool.self, forKey: .showDeviceFrame)
     isLandscape = try container.decodeIfPresent(Bool.self, forKey: .isLandscape) ?? false
     fontFamily = try container.decode(String.self, forKey: .fontFamily)
-    fontSize = try container.decode(Double.self, forKey: .fontSize)
+    // Migration: try new fontSizes dict first, fall back to legacy single fontSize
+    if let sizes = try container.decodeIfPresent([String: Double].self, forKey: .fontSizes) {
+      fontSizes = sizes
+    } else if let legacySize = try container.decodeIfPresent(Double.self, forKey: .fontSize) {
+      // Migrate single fontSize to per-device dictionary with value for all categories
+      fontSizes = DeviceCategory.allCases.reduce(into: [String: Double]()) { $0[$1.rawValue] = legacySize }
+    } else {
+      fontSizes = [:]
+    }
     textColorHex = try container.decode(String.self, forKey: .textColorHex)
     titleStyle =
       try container.decodeIfPresent(TextStyle.self, forKey: .titleStyle) ?? TextStyle(isBold: true)
@@ -283,7 +303,7 @@ extension Screen: Codable {
     try container.encode(showDeviceFrame, forKey: .showDeviceFrame)
     try container.encode(isLandscape, forKey: .isLandscape)
     try container.encode(fontFamily, forKey: .fontFamily)
-    try container.encode(fontSize, forKey: .fontSize)
+    try container.encode(fontSizes, forKey: .fontSizes)
     try container.encode(textColorHex, forKey: .textColorHex)
     try container.encode(titleStyle, forKey: .titleStyle)
     try container.encode(subtitleStyle, forKey: .subtitleStyle)

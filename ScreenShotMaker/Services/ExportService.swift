@@ -113,8 +113,8 @@ struct ExportableScreenView: View {
 
   private var textContent: some View {
     let localizedText = screen.text(for: languageCode)
-    let titleSize = ScalingService.scaledFontSize(screen.fontSize, factor: sf)
-    let subtitleSize = ScalingService.scaledFontSize(screen.fontSize * 0.6, factor: sf)
+    let titleSize = ScalingService.scaledFontSize(screen.fontSize(for: device.category), factor: sf)
+    let subtitleSize = ScalingService.scaledFontSize(screen.fontSize(for: device.category) * 0.6, factor: sf)
     return VStack(spacing: ScalingService.scaledPadding(12, factor: sf)) {
       if !localizedText.title.isEmpty {
         Text(localizedText.title)
