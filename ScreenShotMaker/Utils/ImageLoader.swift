@@ -47,6 +47,22 @@ enum ImageLoader {
     return data
   }
 
+  /// Get the pixel size of an image from its data.
+  /// Returns nil if the data cannot be parsed as a valid image.
+  static func imagePixelSize(from data: Data) -> CGSize? {
+    guard let image = PlatformImage(data: data) else { return nil }
+    #if canImport(AppKit)
+      // NSImage may have multiple representations; use the first bitmap rep's pixel dimensions
+      if let bitmapRep = image.representations.first {
+        return CGSize(width: bitmapRep.pixelsWide, height: bitmapRep.pixelsHigh)
+      }
+      return image.size
+    #elseif canImport(UIKit)
+      // UIImage.size is in points; multiply by scale for actual pixels
+      return CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+    #endif
+  }
+
   /// Validate and return image data provided directly (e.g. from iPad Photos drag).
   static func loadImageData(_ data: Data) throws -> Data {
     guard data.count <= maxFileSize else {

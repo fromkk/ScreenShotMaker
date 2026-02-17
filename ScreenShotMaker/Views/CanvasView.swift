@@ -214,16 +214,24 @@ struct CanvasView: View {
       }
 
     if screen.showDeviceFrame, let device = state.selectedDevice {
-      let frameW =
+      let baseFrameW =
         Double(device.effectiveWidth(isLandscape: screen.isLandscape)) * effectiveZoom
         * 0.15 * 0.7
-      let frameH =
+      let baseFrameH =
         Double(device.effectiveHeight(isLandscape: screen.isLandscape)) * effectiveZoom
         * 0.15 * 0.7
+      let languageCode = state.selectedLanguage?.code ?? "en"
+      let imageData = screen.screenshotImageData(for: languageCode, category: device.category)
+      let fitted = ScalingService.frameFittingSize(
+        imageData: imageData,
+        boxWidth: baseFrameW,
+        boxHeight: baseFrameH,
+        fitToImage: screen.fitFrameToImage
+      )
       DeviceFrameView(
         category: device.category,
-        screenWidth: frameW,
-        screenHeight: frameH,
+        screenWidth: fitted.width,
+        screenHeight: fitted.height,
         config: screen.deviceFrameConfig
       ) {
         screenshotContent

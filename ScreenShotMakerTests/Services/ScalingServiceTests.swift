@@ -1,6 +1,12 @@
 import Foundation
 import Testing
 
+#if canImport(AppKit)
+  import AppKit
+#elseif canImport(UIKit)
+  import UIKit
+#endif
+
 @testable import ScreenShotMaker
 
 @Suite("ScalingService Tests")
@@ -58,5 +64,110 @@ struct ScalingServiceTests {
   func testScaledCornerRadius() {
     let result = ScalingService.scaledCornerRadius(16, factor: 1.2)
     #expect(abs(result - 19.2) < 0.001)
+  }
+
+  // MARK: - Frame Fitting Size Tests
+
+  @Test("frameFittingSize returns box size when fitToImage is false")
+  func testFrameFittingSizeDisabled() {
+    let result = ScalingService.frameFittingSize(
+      imageData: nil,
+      boxWidth: 400,
+      boxHeight: 600,
+      fitToImage: false
+    )
+    #expect(result.width == 400)
+    #expect(result.height == 600)
+  }
+
+  @Test("frameFittingSize returns box size when no image data")
+  func testFrameFittingSizeNoImage() {
+    let result = ScalingService.frameFittingSize(
+      imageData: nil,
+      boxWidth: 400,
+      boxHeight: 600,
+      fitToImage: true
+    )
+    #expect(result.width == 400)
+    #expect(result.height == 600)
+  }
+
+  @Test("frameFittingSize returns box size for invalid image data")
+  func testFrameFittingSizeInvalidData() {
+    let invalidData = Data([0x00, 0x01, 0x02])
+    let result = ScalingService.frameFittingSize(
+      imageData: invalidData,
+      boxWidth: 400,
+      boxHeight: 600,
+      fitToImage: true
+    )
+    #expect(result.width == 400)
+    #expect(result.height == 600)
+  }
+
+  @Test("frameFittingSize fits wider image within box")
+  func testFrameFittingSizeWiderImage() {
+    // Create a 200x100 (2:1 aspect) PNG image
+    let imageData = createTestPNG(width: 200, height: 100)
+    let result = ScalingService.frameFittingSize(
+      imageData: imageData,
+      boxWidth: 400,
+      boxHeight: 600,
+      fitToImage: true
+    )
+    // 2:1 aspect, constrained by width: 400 x 200
+    #expect(abs(result.width - 400) < 1)
+    #expect(abs(result.height - 200) < 1)
+  }
+
+  @Test("frameFittingSize fits taller image within box")
+  func testFrameFittingSizeTallerImage() {
+    // Create a 100x300 (1:3 aspect) PNG image
+    let imageData = createTestPNG(width: 100, height: 300)
+    let result = ScalingService.frameFittingSize(
+      imageData: imageData,
+      boxWidth: 400,
+      boxHeight: 600,
+      fitToImage: true
+    )
+    // 1:3 aspect, constrained by height: 200 x 600
+    #expect(abs(result.width - 200) < 1)
+    #expect(abs(result.height - 600) < 1)
+  }
+
+  @Test("frameFittingSize fits square image within box")
+  func testFrameFittingSizeSquareImage() {
+    let imageData = createTestPNG(width: 100, height: 100)
+    let result = ScalingService.frameFittingSize(
+      imageData: imageData,
+      boxWidth: 400,
+      boxHeight: 600,
+      fitToImage: true
+    )
+    // 1:1 aspect in a 400x600 box → constrained by width: 400 x 400
+    #expect(abs(result.width - 400) < 1)
+    #expect(abs(result.height - 400) < 1)
+  }
+
+  /// Helper: create a minimal PNG image of the given pixel size
+  private func createTestPNG(width: Int, height: Int) -> Data {
+    #if canImport(AppKit)
+      let image = NSImage(size: NSSize(width: width, height: height))
+      image.lockFocus()
+      NSColor.white.set()
+      NSBezierPath.fill(NSRect(x: 0, y: 0, width: width, height: height))
+      image.unlockFocus()
+      guard let tiff = image.tiffRepresentation,
+            let rep = NSBitmapImageRep(data: tiff),
+            let png = rep.representation(using: .png, properties: [:])
+      else { return Data() }
+      return png
+    #elseif canImport(UIKit)
+      let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height))
+      return renderer.pngData { ctx in
+        UIColor.white.setFill()
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+      }
+    #endif
   }
 }

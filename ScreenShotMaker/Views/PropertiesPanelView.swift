@@ -667,6 +667,19 @@ struct PropertiesPanelView: View {
             }
           }
 
+          Divider()
+
+          Toggle("Fit Frame to Image", isOn: screen.fitFrameToImage)
+            .font(.system(size: 12))
+
+          if screen.wrappedValue.fitFrameToImage {
+            Text("Frame aspect ratio will match the screenshot image")
+              .font(.system(size: 10))
+              .foregroundStyle(.tertiary)
+          }
+
+          Divider()
+
           Button {
             screen.wrappedValue.deviceFrameConfig = .default
           } label: {

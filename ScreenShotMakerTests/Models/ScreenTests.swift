@@ -18,6 +18,7 @@ struct ScreenTests {
     #expect(screen.showDeviceFrame == true)
     #expect(screen.fontFamily == "SF Pro Display")
     #expect(screen.screenshotImageData == nil)
+    #expect(screen.fitFrameToImage == false)
   }
 
   @Test("Screen encodes and decodes correctly")
@@ -525,5 +526,44 @@ struct ScreenTests {
     let screen = Screen(fontSize: 40)
     #expect(screen.fontSize(for: .iPhone) == 40)
     #expect(screen.fontSize(for: .iPad) == 40)
+  }
+
+  // MARK: - Fit Frame to Image Tests
+
+  @Test("Screen fitFrameToImage defaults to false")
+  func testFitFrameToImageDefault() {
+    let screen = Screen()
+    #expect(screen.fitFrameToImage == false)
+  }
+
+  @Test("Screen fitFrameToImage round-trips through Codable")
+  func testFitFrameToImageCodableRoundTrip() throws {
+    let screen = Screen(fitFrameToImage: true)
+    #expect(screen.fitFrameToImage == true)
+
+    let data = try JSONEncoder().encode(screen)
+    let decoded = try JSONDecoder().decode(Screen.self, from: data)
+    #expect(decoded.fitFrameToImage == true)
+  }
+
+  @Test("Screen fitFrameToImage backward compatibility: missing key defaults to false")
+  func testFitFrameToImageBackwardCompatibility() throws {
+    let legacyJSON = """
+      {
+          "id": "00000000-0000-0000-0000-000000000098",
+          "name": "Screen 1",
+          "layoutPreset": "textTop",
+          "title": "Title",
+          "subtitle": "Sub",
+          "background": {"solidColor": {"_0": {"hex": "#FF0000"}}},
+          "showDeviceFrame": true,
+          "fontFamily": "SF Pro Display",
+          "fontSize": 48,
+          "textColorHex": "#FFFFFF"
+      }
+      """
+    let data = Data(legacyJSON.utf8)
+    let screen = try JSONDecoder().decode(Screen.self, from: data)
+    #expect(screen.fitFrameToImage == false)
   }
 }

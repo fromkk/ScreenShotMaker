@@ -34,4 +34,35 @@ enum ScalingService {
   static func scaledCornerRadius(_ radius: Double, factor: CGFloat) -> Double {
     radius * Double(factor)
   }
+
+  /// Calculate frame size that fits the image's aspect ratio within a bounding box.
+  /// When `fitToImage` is true and valid image data is provided, the returned size
+  /// adjusts the frame's aspect ratio to match the image while fitting inside the
+  /// bounding box defined by `boxWidth × boxHeight`.
+  /// When `fitToImage` is false or no valid image data exists, returns the box size as-is.
+  static func frameFittingSize(
+    imageData: Data?,
+    boxWidth: CGFloat,
+    boxHeight: CGFloat,
+    fitToImage: Bool
+  ) -> (width: CGFloat, height: CGFloat) {
+    guard fitToImage,
+          let imageData,
+          let imageSize = ImageLoader.imagePixelSize(from: imageData),
+          imageSize.width > 0, imageSize.height > 0
+    else {
+      return (boxWidth, boxHeight)
+    }
+
+    let imageAspect = imageSize.width / imageSize.height
+    let boxAspect = boxWidth / boxHeight
+
+    if imageAspect > boxAspect {
+      // Image is wider than box → constrain by width
+      return (boxWidth, boxWidth / imageAspect)
+    } else {
+      // Image is taller than box → constrain by height
+      return (boxHeight * imageAspect, boxHeight)
+    }
+  }
 }

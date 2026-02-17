@@ -157,13 +157,20 @@ struct ExportableScreenView: View {
       }
 
     if screen.showDeviceFrame {
-      let screenW = CGFloat(device.effectiveWidth(isLandscape: screen.isLandscape)) * 0.7
-      let screenH =
+      let baseScreenW = CGFloat(device.effectiveWidth(isLandscape: screen.isLandscape)) * 0.7
+      let baseScreenH =
         CGFloat(device.effectiveHeight(isLandscape: screen.isLandscape)) * 0.7
+      let imageData = screen.screenshotImageData(for: languageCode, category: device.category)
+      let fitted = ScalingService.frameFittingSize(
+        imageData: imageData,
+        boxWidth: baseScreenW,
+        boxHeight: baseScreenH,
+        fitToImage: screen.fitFrameToImage
+      )
       DeviceFrameView(
         category: device.category,
-        screenWidth: screenW,
-        screenHeight: screenH,
+        screenWidth: fitted.width,
+        screenHeight: fitted.height,
         config: screen.deviceFrameConfig
       ) {
         screenshotContent

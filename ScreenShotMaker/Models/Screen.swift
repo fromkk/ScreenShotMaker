@@ -99,6 +99,7 @@ struct Screen: Identifiable, Hashable {
   var deviceFrameConfig: DeviceFrameConfig
   var screenshotContentMode: ScreenshotContentMode
   var textToImageSpacing: CGFloat
+  var fitFrameToImage: Bool
 
   // Convenience accessors for default language ("en")
   var title: String {
@@ -203,7 +204,8 @@ struct Screen: Identifiable, Hashable {
     subtitleStyle: TextStyle = TextStyle(isBold: false),
     deviceFrameConfig: DeviceFrameConfig = .default,
     screenshotContentMode: ScreenshotContentMode = .fit,
-    textToImageSpacing: CGFloat = 20.0
+    textToImageSpacing: CGFloat = 20.0,
+    fitFrameToImage: Bool = false
   ) {
     self.id = id
     self.name = name
@@ -221,6 +223,7 @@ struct Screen: Identifiable, Hashable {
     self.deviceFrameConfig = deviceFrameConfig
     self.screenshotContentMode = screenshotContentMode
     self.textToImageSpacing = textToImageSpacing
+    self.fitFrameToImage = fitFrameToImage
   }
 }
 
@@ -231,7 +234,7 @@ extension Screen: Codable {
     case id, name, layoutPreset, localizedTexts, background, screenshotImages
     case showDeviceFrame, isLandscape, fontFamily, fontSize, fontSizes, textColorHex
     case titleStyle, subtitleStyle, deviceFrameConfig, screenshotContentMode
-    case textToImageSpacing
+    case textToImageSpacing, fitFrameToImage
     // Legacy keys
     case title, subtitle, screenshotImageData
   }
@@ -291,6 +294,8 @@ extension Screen: Codable {
       ?? .fit
     textToImageSpacing =
       try container.decodeIfPresent(CGFloat.self, forKey: .textToImageSpacing) ?? 20.0
+    fitFrameToImage =
+      try container.decodeIfPresent(Bool.self, forKey: .fitFrameToImage) ?? false
 
     // Try new format first, fall back to legacy
     if let texts = try? container.decode([String: LocalizedText].self, forKey: .localizedTexts) {
@@ -322,5 +327,6 @@ extension Screen: Codable {
     try container.encode(deviceFrameConfig, forKey: .deviceFrameConfig)
     try container.encode(screenshotContentMode, forKey: .screenshotContentMode)
     try container.encode(textToImageSpacing, forKey: .textToImageSpacing)
+    try container.encode(fitFrameToImage, forKey: .fitFrameToImage)
   }
 }
