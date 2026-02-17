@@ -113,6 +113,15 @@
         }
       }
     },
+    "×" : {
+
+    },
+    "1080" : {
+
+    },
+    "1920" : {
+
+    },
     "Actual Size" : {
       "localizations" : {
         "en" : {
@@ -125,6 +134,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "実寸"
+          }
+        }
+      }
+    },
+    "Add Custom Device" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Custom Device"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタムデバイスを追加"
+          }
+        }
+      }
+    },
+    "Add Custom Size" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Custom Size"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタムサイズを追加"
           }
         }
       }
@@ -417,6 +458,134 @@
         }
       }
     },
+    "Custom Sizes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Sizes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタムサイズ"
+          }
+        }
+      }
+    },
+    "Custom" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタム"
+          }
+        }
+      }
+    },
+    "iPhone" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone"
+          }
+        }
+      }
+    },
+    "iPad" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPad"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPad"
+          }
+        }
+      }
+    },
+    "Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac"
+          }
+        }
+      }
+    },
+    "Apple Watch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Watch"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Watch"
+          }
+        }
+      }
+    },
+    "Apple TV" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple TV"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple TV"
+          }
+        }
+      }
+    },
+    "Apple Vision Pro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Vision Pro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Vision Pro"
+          }
+        }
+      }
+    },
     "Dark backgrounds with bright text" : {
       "localizations" : {
         "en" : {
@@ -669,6 +838,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "オランダ語"
+          }
+        }
+      }
+    },
+    "e.g., Instagram Story" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g., Instagram Story"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例: Instagram Story"
           }
         }
       }
@@ -1025,6 +1210,22 @@
         }
       }
     },
+    "Height (px)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Height (px)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縦幅 (px)"
+          }
+        }
+      }
+    },
     "Hex" : {
       "localizations" : {
         "en" : {
@@ -1281,6 +1482,22 @@
         }
       }
     },
+    "Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前"
+          }
+        }
+      }
+    },
     "New from Template..." : {
       "localizations" : {
         "en" : {
@@ -1441,6 +1658,70 @@
         }
       }
     },
+    "Please enter a name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a name"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前を入力してください"
+          }
+        }
+      }
+    },
+    "Please enter width and height as numbers" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter width and height as numbers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横幅と縦幅には数値を入力してください"
+          }
+        }
+      }
+    },
+    "Please specify between 1-10000px" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please specify between 1-10000px"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "※ 1〜10000pxの範囲で指定してください"
+          }
+        }
+      }
+    },
+    "Please specify size between 1-10000px" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please specify size between 1-10000px"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイズは1〜10000pxの範囲で指定してください"
+          }
+        }
+      }
+    },
     "PNG or JPEG, max 20MB" : {
       "localizations" : {
         "en" : {
@@ -1501,6 +1782,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "プロフェッショナル"
+          }
+        }
+      }
+    },
+    "Remove Custom Device" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Custom Device"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタムデバイスを削除"
           }
         }
       }
@@ -2045,6 +2342,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "鮮やかなグラデーション背景に大きな白いテキスト"
+          }
+        }
+      }
+    },
+    "Width (px)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Width (px)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横幅 (px)"
           }
         }
       }

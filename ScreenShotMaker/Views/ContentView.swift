@@ -121,6 +121,7 @@ struct LanguagePicker: View {
 struct DeviceManagerButton: View {
   @Bindable var state: ProjectState
   @State private var showPopover = false
+  @State private var showCustomDeviceDialog = false
 
   var body: some View {
     Button {
@@ -131,6 +132,9 @@ struct DeviceManagerButton: View {
     .popover(isPresented: $showPopover) {
       deviceManagerPopover
     }
+    .sheet(isPresented: $showCustomDeviceDialog) {
+      CustomDeviceSizeDialog(projectState: state)
+    }
   }
 
   private var deviceManagerPopover: some View {
@@ -139,7 +143,7 @@ struct DeviceManagerButton: View {
         Text("Select Devices")
           .font(.system(size: 13, weight: .semibold))
 
-        ForEach(DeviceCategory.allCases) { category in
+        ForEach(DeviceCategory.allCases.filter { $0 != .custom }) { category in
           let devices = DeviceSize.sizes(for: category)
           if !devices.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
@@ -171,6 +175,61 @@ struct DeviceManagerButton: View {
             }
           }
         }
+        
+        // Custom devices section
+        if !state.project.customDevices.isEmpty {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Custom Sizes")
+              .font(.system(size: 11, weight: .medium))
+              .foregroundStyle(.secondary)
+            
+            ForEach(state.project.customDevices) { device in
+              let isSelected = state.project.selectedDevices.contains(device)
+              HStack(spacing: 4) {
+                Button {
+                  toggleDevice(device)
+                } label: {
+                  HStack {
+                    Image(
+                      systemName: isSelected
+                        ? "checkmark.circle.fill" : "circle"
+                    )
+                    .foregroundStyle(isSelected ? .blue : .secondary)
+                    Text(device.name)
+                      .font(.system(size: 12))
+                    Spacer()
+                    Text(device.sizeDescription)
+                      .font(.system(size: 10, design: .monospaced))
+                      .foregroundStyle(.tertiary)
+                  }
+                }
+                .buttonStyle(.plain)
+                
+                Button {
+                  state.removeCustomDevice(device)
+                } label: {
+                  Image(systemName: "trash")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+              }
+            }
+          }
+        }
+        
+        // Add custom size button
+        Divider()
+          .padding(.vertical, 4)
+        
+        Button {
+          showCustomDeviceDialog = true
+        } label: {
+          Label("Add Custom Size", systemImage: "plus.circle")
+            .font(.system(size: 12))
+            .foregroundStyle(.blue)
+        }
+        .buttonStyle(.plain)
       }
       .padding(12)
     }

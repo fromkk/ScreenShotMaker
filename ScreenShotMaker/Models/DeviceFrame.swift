@@ -49,6 +49,15 @@ extension DeviceCategory {
         hasNotch: false,
         hasHomeIndicator: false
       )
+    case .custom:
+      // Custom devices get a simple, minimal frame
+      return DeviceFrameSpec(
+        bezelRatio: 0.05,
+        cornerRadiusRatio: 0.05,
+        frameColor: .black,
+        hasNotch: false,
+        hasHomeIndicator: false
+      )
     default:
       return nil
     }

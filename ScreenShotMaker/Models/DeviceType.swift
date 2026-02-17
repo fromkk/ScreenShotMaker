@@ -7,17 +7,19 @@ enum DeviceCategory: String, Codable, CaseIterable, Identifiable {
   case appleWatch
   case appleTV
   case appleVisionPro
+  case custom
 
   var id: String { rawValue }
 
   var displayName: String {
     switch self {
-    case .iPhone: "iPhone"
-    case .iPad: "iPad"
-    case .mac: "Mac"
-    case .appleWatch: "Apple Watch"
-    case .appleTV: "Apple TV"
-    case .appleVisionPro: "Apple Vision Pro"
+    case .iPhone: String(localized: "iPhone")
+    case .iPad: String(localized: "iPad")
+    case .mac: String(localized: "Mac")
+    case .appleWatch: String(localized: "Apple Watch")
+    case .appleTV: String(localized: "Apple TV")
+    case .appleVisionPro: String(localized: "Apple Vision Pro")
+    case .custom: String(localized: "Custom")
     }
   }
 
@@ -29,16 +31,17 @@ enum DeviceCategory: String, Codable, CaseIterable, Identifiable {
     case .appleWatch: "applewatch"
     case .appleTV: "appletv"
     case .appleVisionPro: "visionpro"
+    case .custom: "rectangle.dashed"
     }
   }
 
   /// Whether this device category supports rotation between Portrait and Landscape.
-  /// iPhone / iPad can rotate; Mac, Apple TV, Apple Vision Pro, Apple Watch are fixed.
+  /// iPhone / iPad can rotate; Mac, Apple TV, Apple Vision Pro, Apple Watch, and Custom are fixed.
   var supportsRotation: Bool {
     switch self {
     case .iPhone, .iPad:
       return true
-    case .mac, .appleWatch, .appleTV, .appleVisionPro:
+    case .mac, .appleWatch, .appleTV, .appleVisionPro, .custom:
       return false
     }
   }
@@ -51,6 +54,32 @@ struct DeviceSize: Codable, Identifiable, Hashable {
   let displaySize: String
   let portraitWidth: Int
   let portraitHeight: Int
+  let isCustom: Bool
+  
+  init(name: String, category: DeviceCategory, displaySize: String, portraitWidth: Int, portraitHeight: Int, isCustom: Bool = false) {
+    self.name = name
+    self.category = category
+    self.displaySize = displaySize
+    self.portraitWidth = portraitWidth
+    self.portraitHeight = portraitHeight
+    self.isCustom = isCustom
+  }
+  
+  // Custom decoder for backward compatibility
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    name = try container.decode(String.self, forKey: .name)
+    category = try container.decode(DeviceCategory.self, forKey: .category)
+    displaySize = try container.decode(String.self, forKey: .displaySize)
+    portraitWidth = try container.decode(Int.self, forKey: .portraitWidth)
+    portraitHeight = try container.decode(Int.self, forKey: .portraitHeight)
+    // Default to false if isCustom is not present (backward compatibility)
+    isCustom = try container.decodeIfPresent(Bool.self, forKey: .isCustom) ?? false
+  }
+  
+  private enum CodingKeys: String, CodingKey {
+    case name, category, displaySize, portraitWidth, portraitHeight, isCustom
+  }
 
   var landscapeWidth: Int { portraitHeight }
   var landscapeHeight: Int { portraitWidth }
@@ -77,6 +106,19 @@ struct DeviceSize: Codable, Identifiable, Hashable {
       return landscapeHeight
     }
     return portraitHeight
+  }
+  
+  /// Creates a custom device size with user-defined dimensions.
+  /// Custom sizes do not support rotation and are always fixed to the specified width and height.
+  static func custom(name: String, width: Int, height: Int) -> DeviceSize {
+    return DeviceSize(
+      name: name,
+      category: .custom,
+      displaySize: "\(width) × \(height)",
+      portraitWidth: width,
+      portraitHeight: height,
+      isCustom: true
+    )
   }
 }
 

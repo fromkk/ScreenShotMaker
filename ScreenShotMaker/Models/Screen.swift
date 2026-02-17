@@ -74,8 +74,20 @@ struct Screen: Identifiable, Hashable {
   static let defaultFontSize: Double = 96
 
   /// Get font size for a specific device category
+  /// For custom devices, falls back to iPhone font size if not set
   func fontSize(for category: DeviceCategory) -> Double {
-    fontSizes[category.rawValue] ?? Screen.defaultFontSize
+    // Try to get the font size for this category first
+    if let size = fontSizes[category.rawValue] {
+      return size
+    }
+    
+    // If custom category doesn't have a font size set, fall back to iPhone
+    if category == .custom {
+      return fontSizes["iPhone"] ?? Screen.defaultFontSize
+    }
+    
+    // Default fallback
+    return Screen.defaultFontSize
   }
 
   /// Set font size for a specific device category

@@ -10,8 +10,13 @@ enum ScalingService {
   }
 
   /// Get the reference (largest) device for a given category
+  /// For custom devices, returns nil (each custom device is its own reference, scale = 1.0)
   static func referenceDevice(for category: DeviceCategory) -> DeviceSize? {
-    DeviceSize.sizes(for: category)
+    // Custom devices don't have a shared reference; each is independent
+    if category == .custom {
+      return nil
+    }
+    return DeviceSize.sizes(for: category)
       .max(by: { $0.portraitHeight < $1.portraitHeight })
   }
 

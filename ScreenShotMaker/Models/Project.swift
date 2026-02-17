@@ -7,6 +7,7 @@ struct ScreenShotProject: Codable {
   var screens: [Screen]
   var selectedDevices: [DeviceSize]
   var languages: [Language]
+  var customDevices: [DeviceSize] = []
 
   init(
     name: String = "Untitled Project",
@@ -16,12 +17,29 @@ struct ScreenShotProject: Codable {
     selectedDevices: [DeviceSize] = [
       DeviceSize.iPhoneSizes[0], DeviceSize.iPhoneSizes[2], DeviceSize.iPadSizes[0],
     ],
-    languages: [Language] = [Language(code: "en", displayName: "English")]
+    languages: [Language] = [Language(code: "en", displayName: "English")],
+    customDevices: [DeviceSize] = []
   ) {
     self.name = name
     self.screens = screens
     self.selectedDevices = selectedDevices
     self.languages = languages
+    self.customDevices = customDevices
+  }
+  
+  // Custom decoder for backward compatibility
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    name = try container.decode(String.self, forKey: .name)
+    screens = try container.decode([Screen].self, forKey: .screens)
+    selectedDevices = try container.decode([DeviceSize].self, forKey: .selectedDevices)
+    languages = try container.decode([Language].self, forKey: .languages)
+    // Default to empty array if customDevices is not present (backward compatibility)
+    customDevices = try container.decodeIfPresent([DeviceSize].self, forKey: .customDevices) ?? []
+  }
+  
+  private enum CodingKeys: String, CodingKey {
+    case name, screens, selectedDevices, languages, customDevices
   }
 }
 
@@ -271,6 +289,42 @@ final class ProjectState {
       // Silently fail — bookmark saving is best-effort
       print("Failed to save bookmark: \(error)")
     }
+  }
+
+  func addCustomDevice(name: String, width: Int, height: Int) {
+    let customDevice = DeviceSize.custom(name: name, width: width, height: height)
+    project.customDevices.append(customDevice)
+    project.selectedDevices.append(customDevice)
+    hasUnsavedChanges = true
+    
+    undoManager?.registerUndo(withTarget: self) { state in
+      state.project.customDevices.removeAll { $0.id == customDevice.id }
+      state.project.selectedDevices.removeAll { $0.id == customDevice.id }
+      state.hasUnsavedChanges = true
+    }
+    undoManager?.setActionName("Add Custom Device")
+  }
+  
+  func removeCustomDevice(_ device: DeviceSize) {
+    let customDeviceIndex = project.customDevices.firstIndex(where: { $0.id == device.id })
+    let wasSelected = project.selectedDevices.contains(where: { $0.id == device.id })
+    
+    project.customDevices.removeAll { $0.id == device.id }
+    project.selectedDevices.removeAll { $0.id == device.id }
+    hasUnsavedChanges = true
+    
+    undoManager?.registerUndo(withTarget: self) { state in
+      if let idx = customDeviceIndex {
+        state.project.customDevices.insert(device, at: idx)
+      } else {
+        state.project.customDevices.append(device)
+      }
+      if wasSelected {
+        state.project.selectedDevices.append(device)
+      }
+      state.hasUnsavedChanges = true
+    }
+    undoManager?.setActionName("Remove Custom Device")
   }
 
   func restoreBookmarkedURL() -> URL? {
