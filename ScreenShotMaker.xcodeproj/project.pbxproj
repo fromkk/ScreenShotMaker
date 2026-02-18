@@ -19,6 +19,7 @@
 /* Begin PBXFileReference section */
 		6E1AD276B16576E986807E08 /* ScreenShotMakerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenShotMakerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		74CF5AF40AE14992A7ACEE93 /* Shotcraft.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shotcraft.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ADD4D7122F455B7B0063535C /* ScreenShotMaker.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ScreenShotMaker.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -39,6 +40,7 @@
 		F1F6A77E9FFDA4B1838BEE4E = {
 			isa = PBXGroup;
 			children = (
+				ADD4D7122F455B7B0063535C /* ScreenShotMaker.xcconfig */,
 				ADEA3B732F3894BF002BF680 /* ScreenShotMaker */,
 				ADEA3B4A2F3894BA002BF680 /* ScreenShotMakerTests */,
 				0D08ECBF1E49709B036A76A9 /* Products */,
@@ -241,6 +243,7 @@
 		};
 		3BAF18F1904E48F210F39063 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = ADD4D7122F455B7B0063535C /* ScreenShotMaker.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_ICON_FILE = ScreenShotMaker/AppIcon.icon;
@@ -251,7 +254,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K84E4S7G4C;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -270,7 +272,6 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.fromkk.ScreenShotMaker;
 				PRODUCT_MODULE_NAME = ScreenShotMaker;
 				PRODUCT_NAME = Shotcraft;
@@ -281,6 +282,7 @@
 		};
 		6442C95B0E30EC8EAFE09F0D /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = ADD4D7122F455B7B0063535C /* ScreenShotMaker.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_ICON_FILE = ScreenShotMaker/AppIcon.icon;
@@ -291,7 +293,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K84E4S7G4C;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -310,7 +311,6 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.fromkk.ScreenShotMaker;
 				PRODUCT_MODULE_NAME = ScreenShotMaker;
 				PRODUCT_NAME = Shotcraft;
@@ -389,6 +389,7 @@
 		};
 		BF81C80FF220E3D9513738E1 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = ADD4D7122F455B7B0063535C /* ScreenShotMaker.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -411,6 +412,7 @@
 		};
 		C26C83921A85546D4F597FF0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = ADD4D7122F455B7B0063535C /* ScreenShotMaker.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_IDENTITY = "Apple Development";
