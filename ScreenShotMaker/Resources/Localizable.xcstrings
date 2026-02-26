@@ -715,6 +715,7 @@
       }
     },
     "Drop image or click below" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -730,7 +731,24 @@
         }
       }
     },
+    "Drop image or video, or click below" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drop image or video, or click below"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像または動画をドロップ、またはクリック"
+          }
+        }
+      }
+    },
     "Drop screenshot" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -742,6 +760,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スクリーンショットをドロップ"
+          }
+        }
+      }
+    },
+    "Drop screenshot or video" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drop screenshot or video"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクリーンショットまたは動画をドロップ"
           }
         }
       }
@@ -1067,7 +1101,20 @@
       }
     },
     "Fit Frame to Image" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fit Frame to Image"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームを画像に合わせる"
+          }
+        }
+      }
     },
     "Font" : {
       "localizations" : {
@@ -1101,8 +1148,37 @@
         }
       }
     },
+    "Frame %lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frame %1$lld / %2$lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレーム %1$lld / %2$lld"
+          }
+        }
+      }
+    },
     "Frame aspect ratio will match the screenshot image" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frame aspect ratio will match the screenshot image"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームのアスペクト比をスクリーンショット画像に合わせます"
+          }
+        }
+      }
     },
     "Frame Color" : {
       "localizations" : {
@@ -1729,6 +1805,7 @@
       }
     },
     "PNG or JPEG, max 20MB" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1740,6 +1817,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PNG または JPEG（最大 20MB）"
+          }
+        }
+      }
+    },
+    "PNG, JPEG, MP4, MOV, M4V supported" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PNG, JPEG, MP4, MOV, M4V supported"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PNG、JPEG、MP4、MOV、M4V に対応"
           }
         }
       }
@@ -1772,6 +1865,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ポルトガル語（ブラジル）"
+          }
+        }
+      }
+    },
+    "Poster Frame" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poster Frame"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポスターフレーム"
           }
         }
       }
@@ -1984,6 +2093,22 @@
         }
       }
     },
+    "Screenshot / Video" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshot / Video"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクリーンショット / 動画"
+          }
+        }
+      }
+    },
     "Screenshot Focus" : {
       "localizations" : {
         "en" : {
@@ -2001,6 +2126,7 @@
       }
     },
     "Screenshot Image" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

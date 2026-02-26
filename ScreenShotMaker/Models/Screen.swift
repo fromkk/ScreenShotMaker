@@ -65,6 +65,11 @@ struct Screen: Identifiable, Hashable {
   var localizedTexts: [String: LocalizedText]
   var background: BackgroundStyle
   var screenshotImages: [String: Data]
+  /// セキュリティスコープ付き URL ブックマーク Data。キーは "lang-DeviceCategory"。
+  var screenshotVideoBookmarks: [String: Data]
+  /// ポスターフレームの秒数。キーは "lang-DeviceCategory"。
+  var screenshotVideoPosterTimes: [String: Double]
+
   var showDeviceFrame: Bool
   var isLandscape: Bool
   var fontFamily: String
@@ -142,15 +147,64 @@ struct Screen: Identifiable, Hashable {
   }
 
   /// Set screenshot image for specific language and device category
+  /// Setting an image clears any video assigned to the same key.
   mutating func setScreenshotImageData(
     _ data: Data?, for language: String, category: DeviceCategory
   ) {
     let key = imageKey(language: language, category: category)
     if let data {
       screenshotImages[key] = data
+      // Clear video entries for the same key (exclusive)
+      screenshotVideoBookmarks.removeValue(forKey: key)
+      screenshotVideoPosterTimes.removeValue(forKey: key)
     } else {
       screenshotImages.removeValue(forKey: key)
     }
+  }
+
+  // MARK: - Per-language, per-device video
+
+  /// Get video bookmark data for specific language and device category.
+  func screenshotVideoBookmarkData(for language: String, category: DeviceCategory) -> Data? {
+    let key = imageKey(language: language, category: category)
+    return screenshotVideoBookmarks[key]
+  }
+
+  /// Returns true if a video is assigned for the given language and device category.
+  func hasVideo(for language: String, category: DeviceCategory) -> Bool {
+    screenshotVideoBookmarkData(for: language, category: category) != nil
+  }
+
+  /// Assign a video (bookmark + poster time) for a specific language and device category.
+  /// This clears any image assigned to the same key.
+  mutating func setScreenshotVideo(
+    bookmarkData: Data, posterTime: Double, for language: String, category: DeviceCategory
+  ) {
+    let key = imageKey(language: language, category: category)
+    screenshotVideoBookmarks[key] = bookmarkData
+    screenshotVideoPosterTimes[key] = posterTime
+    // Clear image entry for the same key (exclusive)
+    screenshotImages.removeValue(forKey: key)
+  }
+
+  /// Update poster frame time for a video.
+  mutating func setVideoPosterTime(_ time: Double, for language: String, category: DeviceCategory) {
+    let key = imageKey(language: language, category: category)
+    screenshotVideoPosterTimes[key] = time
+  }
+
+  /// Get poster frame time for a video (defaults to 0 if not set).
+  func videoPosterTime(for language: String, category: DeviceCategory) -> Double {
+    let key = imageKey(language: language, category: category)
+    return screenshotVideoPosterTimes[key] ?? 0
+  }
+
+  /// Clear both image and video for a specific language and device category.
+  mutating func clearScreenshotMedia(for language: String, category: DeviceCategory) {
+    let key = imageKey(language: language, category: category)
+    screenshotImages.removeValue(forKey: key)
+    screenshotVideoBookmarks.removeValue(forKey: key)
+    screenshotVideoPosterTimes.removeValue(forKey: key)
   }
 
   /// Legacy method for backward compatibility (device only)
@@ -195,6 +249,8 @@ struct Screen: Identifiable, Hashable {
     background: BackgroundStyle = .gradient(
       startColor: HexColor("#667EEA"), endColor: HexColor("#764BA2")),
     screenshotImages: [String: Data] = [:],
+    screenshotVideoBookmarks: [String: Data] = [:],
+    screenshotVideoPosterTimes: [String: Double] = [:],
     showDeviceFrame: Bool = true,
     isLandscape: Bool = false,
     fontFamily: String = FontHelper.defaultFontFamily,
@@ -213,6 +269,8 @@ struct Screen: Identifiable, Hashable {
     self.localizedTexts = ["en": LocalizedText(title: title, subtitle: subtitle)]
     self.background = background
     self.screenshotImages = screenshotImages
+    self.screenshotVideoBookmarks = screenshotVideoBookmarks
+    self.screenshotVideoPosterTimes = screenshotVideoPosterTimes
     self.showDeviceFrame = showDeviceFrame
     self.isLandscape = isLandscape
     self.fontFamily = fontFamily
@@ -235,6 +293,7 @@ extension Screen: Codable {
     case showDeviceFrame, isLandscape, fontFamily, fontSize, fontSizes, textColorHex
     case titleStyle, subtitleStyle, deviceFrameConfig, screenshotContentMode
     case textToImageSpacing, fitFrameToImage
+    case screenshotVideoBookmarks, screenshotVideoPosterTimes
     // Legacy keys
     case title, subtitle, screenshotImageData
   }
@@ -296,6 +355,11 @@ extension Screen: Codable {
       try container.decodeIfPresent(CGFloat.self, forKey: .textToImageSpacing) ?? 20.0
     fitFrameToImage =
       try container.decodeIfPresent(Bool.self, forKey: .fitFrameToImage) ?? false
+    screenshotVideoBookmarks =
+      try container.decodeIfPresent([String: Data].self, forKey: .screenshotVideoBookmarks) ?? [:]
+    screenshotVideoPosterTimes =
+      try container.decodeIfPresent([String: Double].self, forKey: .screenshotVideoPosterTimes)
+      ?? [:]
 
     // Try new format first, fall back to legacy
     if let texts = try? container.decode([String: LocalizedText].self, forKey: .localizedTexts) {
@@ -316,6 +380,12 @@ extension Screen: Codable {
     try container.encode(background, forKey: .background)
     if !screenshotImages.isEmpty {
       try container.encode(screenshotImages, forKey: .screenshotImages)
+    }
+    if !screenshotVideoBookmarks.isEmpty {
+      try container.encode(screenshotVideoBookmarks, forKey: .screenshotVideoBookmarks)
+    }
+    if !screenshotVideoPosterTimes.isEmpty {
+      try container.encode(screenshotVideoPosterTimes, forKey: .screenshotVideoPosterTimes)
     }
     try container.encode(showDeviceFrame, forKey: .showDeviceFrame)
     try container.encode(isLandscape, forKey: .isLandscape)

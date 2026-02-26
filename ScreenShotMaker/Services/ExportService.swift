@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 enum ExportFormat: String, CaseIterable {
@@ -11,6 +12,7 @@ struct ExportableScreenView: View {
   let screen: Screen
   let device: DeviceSize
   var languageCode: String = "en"
+  var videoNaturalSize: CGSize? = nil
 
   private var sf: CGFloat {
     guard let ref = ScalingService.referenceDevice(for: device.category) else { return 1.0 }
@@ -57,7 +59,6 @@ struct ExportableScreenView: View {
 
   @ViewBuilder
   private var layoutContent: some View {
-    let sp = ScalingService.scaledPadding(24, factor: sf)
     let outerPad = ScalingService.scaledPadding(32, factor: sf)
     let textImageSpacing = screen.textToImageSpacing * sf
     switch screen.layoutPreset {
@@ -141,6 +142,22 @@ struct ExportableScreenView: View {
     }
   }
 
+  /// Returns the fitted screen dimensions for the DeviceFrameView, honouring
+  /// `fitFrameToImage` for both video (videoNaturalSize) and static image content.
+  private func fittedScreenSize(
+    baseWidth: CGFloat, baseHeight: CGFloat
+  ) -> (width: CGFloat, height: CGFloat) {
+    if let vs = videoNaturalSize {
+      return ScalingService.frameFittingSize(
+        nativeSize: vs, boxWidth: baseWidth, boxHeight: baseHeight,
+        fitToImage: screen.fitFrameToImage)
+    }
+    let imageData = screen.screenshotImageData(for: languageCode, category: device.category)
+    return ScalingService.frameFittingSize(
+      imageData: imageData, boxWidth: baseWidth, boxHeight: baseHeight,
+      fitToImage: screen.fitFrameToImage)
+  }
+
   @ViewBuilder
   private var screenshotView: some View {
     let screenshotContent = RoundedRectangle(cornerRadius: 16)
@@ -160,13 +177,7 @@ struct ExportableScreenView: View {
       let baseScreenW = CGFloat(device.effectiveWidth(isLandscape: screen.isLandscape)) * 0.7
       let baseScreenH =
         CGFloat(device.effectiveHeight(isLandscape: screen.isLandscape)) * 0.7
-      let imageData = screen.screenshotImageData(for: languageCode, category: device.category)
-      let fitted = ScalingService.frameFittingSize(
-        imageData: imageData,
-        boxWidth: baseScreenW,
-        boxHeight: baseScreenH,
-        fitToImage: screen.fitFrameToImage
-      )
+      let fitted = fittedScreenSize(baseWidth: baseScreenW, baseHeight: baseScreenH)
       DeviceFrameView(
         category: device.category,
         screenWidth: fitted.width,
@@ -240,25 +251,72 @@ enum ExportService {
     progressState.completed = 0
     progressState.isExporting = true
 
-    var completed = 0
+    // Pre-create output directories for all language/device combos
     for language in languages {
       for device in devices {
-        let langDir = outputDirectory.appendingPathComponent(language.code)
-        let deviceDir = langDir.appendingPathComponent(device.name)
-        do {
-          try FileManager.default.createDirectory(at: deviceDir, withIntermediateDirectories: true)
-        } catch {
-          progressState.errors.append("Failed to create directory: \(deviceDir.path)")
-          continue
-        }
+        let deviceDir = outputDirectory
+          .appendingPathComponent(language.code)
+          .appendingPathComponent(device.name)
+        try? FileManager.default.createDirectory(at: deviceDir, withIntermediateDirectories: true)
+      }
+    }
 
+    var completed = 0
+
+    // ── Pass 1: video screens (export as .mp4) ─────────────────
+    for language in languages {
+      if progressState.isCancelled { break }
+      for device in devices {
+        if progressState.isCancelled { break }
+        let deviceDir = outputDirectory
+          .appendingPathComponent(language.code)
+          .appendingPathComponent(device.name)
         for screen in screens {
           if progressState.isCancelled { break }
+          guard screen.hasVideo(for: language.code, category: device.category) else {
+            continue
+          }
+          let langName = String(localized: language.displayName)
+          progressState.currentItem = "\(screen.name) / \(device.name) / \(langName)"
+          let fileURL = deviceDir.appendingPathComponent("\(screen.name).mp4")
+          progressState.resetFrameProgress()
+          do {
+            try await VideoExportService.exportVideoScreen(
+              screen, device: device, languageCode: language.code, outputURL: fileURL,
+              onFrameProgress: { done, total in
+                DispatchQueue.main.async {
+                  progressState.currentFrameCompleted = done
+                  progressState.currentFrameTotal = total
+                }
+              })
+          } catch {
+            progressState.errors.append(
+              "Video export failed: \(screen.name) / \(device.name) – \(error.localizedDescription)"
+            )
+          }
+          progressState.resetFrameProgress()
+          completed += 1
+          progressState.completed = completed
+        }
+      }
+    }
 
-          progressState.currentItem = "\(screen.name) / \(device.name) / \(language.displayName)"
-
-          let data = exportScreen(
-            screen, device: device, format: format, languageCode: language.code)
+    // ── Pass 2: static image screens ───────────────────────────
+    for language in languages {
+      if progressState.isCancelled { break }
+      for device in devices {
+        if progressState.isCancelled { break }
+        let deviceDir = outputDirectory
+          .appendingPathComponent(language.code)
+          .appendingPathComponent(device.name)
+        for screen in screens {
+          if progressState.isCancelled { break }
+          guard !screen.hasVideo(for: language.code, category: device.category) else {
+            continue
+          }
+          let langName = String(localized: language.displayName)
+          progressState.currentItem = "\(screen.name) / \(device.name) / \(langName)"
+          let data = exportScreen(screen, device: device, format: format, languageCode: language.code)
           if let data {
             let fileName = "\(screen.name).\(format.fileExtension)"
             let fileURL = deviceDir.appendingPathComponent(fileName)
@@ -271,13 +329,10 @@ enum ExportService {
           } else {
             progressState.errors.append("Failed to render: \(screen.name) / \(device.name)")
           }
-
           completed += 1
           progressState.completed = completed
         }
-        if progressState.isCancelled { break }
       }
-      if progressState.isCancelled { break }
     }
 
     progressState.isExporting = false
@@ -291,7 +346,7 @@ enum ExportService {
     languages: [Language],
     format: ExportFormat,
     progressState: ExportProgressState
-  ) -> [(data: Data, filename: String)] {
+  ) async -> [(data: Data, filename: String)] {
     let screens = project.screens
     let total = screens.count * devices.count * languages.count
     progressState.total = total
@@ -300,28 +355,59 @@ enum ExportService {
 
     var results: [(data: Data, filename: String)] = []
     var completed = 0
+
+    // ── Pass 1: video screens (render poster frame as static image) ──
     for language in languages {
+      if progressState.isCancelled { break }
       for device in devices {
+        if progressState.isCancelled { break }
         for screen in screens {
           if progressState.isCancelled { break }
-
-          progressState.currentItem = "\(screen.name) / \(device.name) / \(language.displayName)"
-
-          if let data = exportScreen(
-            screen, device: device, format: format, languageCode: language.code)
+          guard screen.hasVideo(for: language.code, category: device.category) else { continue }
+          let langName = String(localized: language.displayName)
+          progressState.currentItem = "\(screen.name) / \(device.name) / \(langName)"
+          let posterTime = screen.videoPosterTime(for: language.code, category: device.category)
+          if let bookmarkData = screen.screenshotVideoBookmarkData(
+            for: language.code, category: device.category),
+            let videoURL = VideoLoader.resolveBookmark(bookmarkData),
+            let thumbData = await VideoLoader.generateThumbnail(url: videoURL, at: posterTime)
           {
+            var tempScreen = screen
+            tempScreen.setScreenshotImageData(thumbData, for: language.code, category: device.category)
+            if let data = exportScreen(tempScreen, device: device, format: format, languageCode: language.code) {
+              let filename = "\(language.code)_\(device.name)_\(screen.name).\(format.fileExtension)"
+              results.append((data: data, filename: filename))
+            }
+          } else {
+            progressState.errors.append(
+              "Video poster frame unavailable: \(screen.name) / \(device.name)")
+          }
+          completed += 1
+          progressState.completed = completed
+        }
+      }
+    }
+
+    // ── Pass 2: static image screens ───────────────────────────
+    for language in languages {
+      if progressState.isCancelled { break }
+      for device in devices {
+        if progressState.isCancelled { break }
+        for screen in screens {
+          if progressState.isCancelled { break }
+          guard !screen.hasVideo(for: language.code, category: device.category) else { continue }
+          let langName = String(localized: language.displayName)
+          progressState.currentItem = "\(screen.name) / \(device.name) / \(langName)"
+          if let data = exportScreen(screen, device: device, format: format, languageCode: language.code) {
             let filename = "\(language.code)_\(device.name)_\(screen.name).\(format.fileExtension)"
             results.append((data: data, filename: filename))
           } else {
             progressState.errors.append("Failed to render: \(screen.name) / \(device.name)")
           }
-
           completed += 1
           progressState.completed = completed
         }
-        if progressState.isCancelled { break }
       }
-      if progressState.isCancelled { break }
     }
 
     return results

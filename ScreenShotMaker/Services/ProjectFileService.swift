@@ -63,6 +63,7 @@ enum ProjectFileService {
 
     // 2. Extract images into individual FileWrappers
     var imageFileWrappers: [String: FileWrapper] = [:]
+    var videoFileWrappers: [String: FileWrapper] = [:]
 
     for i in screensArray.indices {
       guard let screenID = screensArray[i]["id"] as? String else { continue }
@@ -79,6 +80,25 @@ enum ProjectFileService {
           fileReferences[key] = filename
         }
         screensArray[i]["screenshotImages"] = fileReferences
+      }
+
+      // Extract screenshotVideoBookmarks
+      if let videoBookmarks = screensArray[i]["screenshotVideoBookmarks"] as? [String: String] {
+        var videoFileReferences: [String: String] = [:]
+        for (key, base64String) in videoBookmarks {
+          guard let bookmarkData = Data(base64Encoded: base64String),
+            let videoURL = VideoLoader.resolveBookmark(bookmarkData)
+          else { continue }
+          let accessing = videoURL.startAccessingSecurityScopedResource()
+          defer { if accessing { videoURL.stopAccessingSecurityScopedResource() } }
+          guard let videoData = try? Data(contentsOf: videoURL) else { continue }
+          let ext = videoURL.pathExtension.lowercased()
+          let safeExt = VideoLoader.supportedExtensions.contains(ext) ? ext : "mp4"
+          let filename = "\(screenID)-\(key).\(safeExt)"
+          videoFileWrappers[filename] = FileWrapper(regularFileWithContents: videoData)
+          videoFileReferences[key] = filename
+        }
+        screensArray[i]["screenshotVideoBookmarks"] = videoFileReferences
       }
 
       // Extract background image
@@ -113,6 +133,13 @@ enum ProjectFileService {
       directoryContents["images"] = imagesDir
     }
 
+    // Always include videos/ directory for forward-compatibility.
+    let videosDirWrappers: [String: FileWrapper] =
+      videoFileWrappers.isEmpty ? [:] : videoFileWrappers
+    let videosDir = FileWrapper(directoryWithFileWrappers: videosDirWrappers)
+    videosDir.preferredFilename = "videos"
+    directoryContents["videos"] = videosDir
+
     let packageWrapper = FileWrapper(directoryWithFileWrappers: directoryContents)
     return packageWrapper
   }
@@ -141,6 +168,9 @@ enum ProjectFileService {
     // 3. Get images directory
     let imagesDir = fileWrappers["images"]?.fileWrappers ?? [:]
 
+    // 3b. Get videos directory (optional; absent in files created before #058)
+    let videosDir = fileWrappers["videos"]?.fileWrappers ?? [:]
+
     // 4. Restore image data from file references
     for i in screensArray.indices {
       // Restore screenshotImages
@@ -154,6 +184,27 @@ enum ProjectFileService {
           }
         }
         screensArray[i]["screenshotImages"] = restoredImages
+      }
+
+      // Restore screenshotVideoBookmarks from videos/ file references → bookmark Data
+      if let videoFileRefs = screensArray[i]["screenshotVideoBookmarks"] as? [String: String],
+        !videoFileRefs.isEmpty
+      {
+        var restoredBookmarks: [String: String] = [:]
+        for (key, filename) in videoFileRefs {
+          guard let videoWrapper = videosDir[filename],
+            let videoData = videoWrapper.regularFileContents
+          else { continue }
+          // Write to temp directory and generate a fresh bookmark.
+          do {
+            let bookmarkData = try VideoLoader.bookmarkForTemporaryVideo(
+              data: videoData, filename: filename)
+            restoredBookmarks[key] = bookmarkData.base64EncodedString()
+          } catch {
+            // Skip unresolvable videos rather than failing the whole load.
+          }
+        }
+        screensArray[i]["screenshotVideoBookmarks"] = restoredBookmarks
       }
 
       // Restore background image

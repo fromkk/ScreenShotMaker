@@ -1,3 +1,4 @@
+import AVKit
 import PhotosUI
 import SwiftUI
 @preconcurrency import Translation
@@ -18,6 +19,9 @@ struct PropertiesPanelView: View {
   @State private var showScreenshotImagePicker = false
   @State private var backgroundPhotosItem: PhotosPickerItem?
   @State private var screenshotPhotosItem: PhotosPickerItem?
+  @State private var videoThumbnail: PlatformImage?
+  @State private var videoDuration: Double = 0
+  @State private var videoPosterTime: Double = 0
 
   private var availableFontFamilies: [String] {
     let families = FontHelper.availableFontFamilies
@@ -696,10 +700,87 @@ struct PropertiesPanelView: View {
   // MARK: - Screenshot Image Section
 
   private func screenshotImageSection(screen: Binding<Screen>) -> some View {
-    let languageCode = state.selectedLanguage?.code ?? "en"
-    return PropertySection(title: "Screenshot Image") {
+    return PropertySection(title: "Screenshot / Video") {
       VStack(spacing: 8) {
-        if let category = state.selectedDevice?.category,
+        let category = state.selectedDevice?.category
+        let languageCode = state.selectedLanguage?.code ?? "en"
+        let hasVideo = category.map { screen.wrappedValue.hasVideo(for: languageCode, category: $0) } ?? false
+        let hasImage = !hasVideo && category.map {
+          screen.wrappedValue.screenshotImageData(for: languageCode, category: $0) != nil
+        } ?? false
+
+        if hasVideo, let category = category {
+          // Video preview + controls
+          ZStack(alignment: .topTrailing) {
+            if let thumb = videoThumbnail {
+              Image(platformImage: thumb)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxHeight: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+              RoundedRectangle(cornerRadius: 8)
+                .fill(Color.black.opacity(0.8))
+                .frame(height: 80)
+                .overlay {
+                  Image(systemName: "film")
+                    .font(.title2)
+                    .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            Button {
+              screen.wrappedValue.clearScreenshotMedia(
+                for: languageCode, category: category)
+              videoThumbnail = nil
+              videoDuration = 0
+              videoPosterTime = 0
+            } label: {
+              Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(.white, .black.opacity(0.6))
+            }
+            .buttonStyle(.plain)
+            .padding(4)
+          }
+          .onDrop(of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie], isTargeted: nil) { providers in
+            handleScreenshotDrop(providers: providers, screen: screen)
+          }
+
+          // Poster frame slider
+          if videoDuration > 0 {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Poster Frame")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+              Slider(
+                value: $videoPosterTime,
+                in: 0...videoDuration,
+                onEditingChanged: { editing in
+                  guard !editing else { return }
+                  screen.wrappedValue.setVideoPosterTime(
+                    videoPosterTime, for: languageCode, category: category)
+                  Task {
+                    let langCode = languageCode
+                    let cat = category
+                    if let bd = screen.wrappedValue.screenshotVideoBookmarkData(
+                      for: langCode, category: cat),
+                      let url = VideoLoader.resolveBookmark(bd)
+                    {
+                      let accessing = url.startAccessingSecurityScopedResource()
+                      defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+                      videoThumbnail = await VideoLoader.generateThumbnail(
+                        url: url, at: videoPosterTime).flatMap(PlatformImage.init(data:))
+                    }
+                  }
+                }
+              )
+              Text(String(format: "%.1f s / %.1f s", videoPosterTime, videoDuration))
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+            }
+          }
+
+        } else if hasImage, let category = category,
           let imageData = screen.wrappedValue.screenshotImageData(
             for: languageCode, category: category),
           let platformImage = PlatformImage(data: imageData)
@@ -712,11 +793,8 @@ struct PropertiesPanelView: View {
               .clipShape(RoundedRectangle(cornerRadius: 8))
 
             Button {
-              if let category = state.selectedDevice?.category {
-                let languageCode = state.selectedLanguage?.code ?? "en"
-                screen.wrappedValue.setScreenshotImageData(
-                  nil, for: languageCode, category: category)
-              }
+              screen.wrappedValue.setScreenshotImageData(
+                nil, for: languageCode, category: category)
             } label: {
               Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 16))
@@ -725,7 +803,7 @@ struct PropertiesPanelView: View {
             .buttonStyle(.plain)
             .padding(4)
           }
-          .onDrop(of: [.fileURL, .image], isTargeted: nil) { providers in
+          .onDrop(of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie], isTargeted: nil) { providers in
             handleScreenshotDrop(providers: providers, screen: screen)
           }
         } else {
@@ -738,12 +816,12 @@ struct PropertiesPanelView: View {
                 Image(systemName: "arrow.up.doc")
                   .font(.title3)
                   .foregroundStyle(.secondary)
-                Text("Drop image or click below")
+                Text("Drop image or video, or click below")
                   .font(.system(size: 11))
                   .foregroundStyle(.secondary)
               }
             }
-            .onDrop(of: [.fileURL, .image], isTargeted: nil) { providers in
+            .onDrop(of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie], isTargeted: nil) { providers in
               handleScreenshotDrop(providers: providers, screen: screen)
             }
         }
@@ -756,21 +834,23 @@ struct PropertiesPanelView: View {
               .frame(maxWidth: .infinity)
           }
 
-          PhotosPicker(selection: $screenshotPhotosItem, matching: .images) {
+          PhotosPicker(selection: $screenshotPhotosItem, matching: .any(of: [.images, .videos])) {
             Label("Photos", systemImage: "photo")
               .frame(maxWidth: .infinity)
           }
         }
 
-        PropertyField(label: "Content Mode") {
-          Picker("", selection: screen.screenshotContentMode) {
-            Text("Fit").tag(ScreenshotContentMode.fit)
-            Text("Fill").tag(ScreenshotContentMode.fill)
+        if !screen.wrappedValue.fitFrameToImage {
+          PropertyField(label: "Content Mode") {
+            Picker("", selection: screen.screenshotContentMode) {
+              Text("Fit").tag(ScreenshotContentMode.fit)
+              Text("Fill").tag(ScreenshotContentMode.fill)
+            }
+            .pickerStyle(.segmented)
           }
-          .pickerStyle(.segmented)
         }
 
-        Text("PNG or JPEG, max 20MB")
+        Text("PNG, JPEG, MP4, MOV, M4V supported")
           .font(.system(size: 10))
           .foregroundStyle(.tertiary)
       }
@@ -782,7 +862,7 @@ struct PropertiesPanelView: View {
     }
     .fileImporter(
       isPresented: $showScreenshotImagePicker,
-      allowedContentTypes: [.png, .jpeg],
+      allowedContentTypes: [.png, .jpeg, .movie, .mpeg4Movie, .quickTimeMovie],
       allowsMultipleSelection: false
     ) { result in
       handleScreenshotImageImport(result: result, screen: screen)
@@ -790,6 +870,9 @@ struct PropertiesPanelView: View {
     .onChange(of: screenshotPhotosItem) { _, newItem in
       handleScreenshotPhotosItem(newItem, screen: screen)
     }
+    .onAppear { refreshVideoState(screen: screen.wrappedValue) }
+    .onChange(of: state.selectedDevice) { _, _ in refreshVideoState(screen: screen.wrappedValue) }
+    .onChange(of: state.selectedLanguage) { _, _ in refreshVideoState(screen: screen.wrappedValue) }
   }
 
   private func handleBackgroundImageImport(result: Result<[URL], Error>, screen: Binding<Screen>) {
@@ -817,15 +900,20 @@ struct PropertiesPanelView: View {
       guard let url = urls.first else { return }
       let accessing = url.startAccessingSecurityScopedResource()
       defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-      do {
-        let data = try ImageLoader.loadImage(from: url)
-        if let category = state.selectedDevice?.category {
-          let languageCode = state.selectedLanguage?.code ?? "en"
-          screen.wrappedValue.setScreenshotImageData(data, for: languageCode, category: category)
+      let ext = url.pathExtension.lowercased()
+      if VideoLoader.supportedExtensions.contains(ext) {
+        handleVideoURL(url, screen: screen)
+      } else {
+        do {
+          let data = try ImageLoader.loadImage(from: url)
+          if let category = state.selectedDevice?.category {
+            let languageCode = state.selectedLanguage?.code ?? "en"
+            screen.wrappedValue.setScreenshotImageData(data, for: languageCode, category: category)
+          }
+        } catch {
+          imageLoadError = error.localizedDescription
+          showImageLoadError = true
         }
-      } catch {
-        imageLoadError = error.localizedDescription
-        showImageLoadError = true
       }
     case .failure(let error):
       imageLoadError = error.localizedDescription
@@ -854,19 +942,38 @@ struct PropertiesPanelView: View {
   private func handleScreenshotPhotosItem(_ item: PhotosPickerItem?, screen: Binding<Screen>) {
     guard let item else { return }
     Task {
-      do {
-        guard let data = try await item.loadTransferable(type: Data.self) else {
-          imageLoadError = "Failed to load image from Photos"
+      // Try to load as a movie first (for video items)
+      if let movieData = try? await item.loadTransferable(type: Data.self),
+        let uti = item.supportedContentTypes.first,
+        uti.conforms(to: .movie)
+      {
+        // Write to temp file to get a URL for VideoLoader
+        let ext = uti.preferredFilenameExtension ?? "mp4"
+        let tempURL = FileManager.default.temporaryDirectory
+          .appendingPathComponent(UUID().uuidString)
+          .appendingPathExtension(ext)
+        do {
+          try movieData.write(to: tempURL, options: .atomic)
+          handleVideoURL(tempURL, screen: screen)
+        } catch {
+          imageLoadError = "Failed to process video from Photos."
           showImageLoadError = true
-          return
         }
-        if let category = state.selectedDevice?.category {
-          let languageCode = state.selectedLanguage?.code ?? "en"
-          screen.wrappedValue.setScreenshotImageData(data, for: languageCode, category: category)
+      } else {
+        do {
+          guard let data = try await item.loadTransferable(type: Data.self) else {
+            imageLoadError = "Failed to load image from Photos"
+            showImageLoadError = true
+            return
+          }
+          if let category = state.selectedDevice?.category {
+            let languageCode = state.selectedLanguage?.code ?? "en"
+            screen.wrappedValue.setScreenshotImageData(data, for: languageCode, category: category)
+          }
+        } catch {
+          imageLoadError = error.localizedDescription
+          showImageLoadError = true
         }
-      } catch {
-        imageLoadError = error.localizedDescription
-        showImageLoadError = true
       }
       screenshotPhotosItem = nil
     }
@@ -882,16 +989,21 @@ struct PropertiesPanelView: View {
           let url = URL(dataRepresentation: data, relativeTo: nil)
         else { return }
         DispatchQueue.main.async {
-          do {
-            let imageData = try ImageLoader.loadImage(from: url)
-            if let category = state.selectedDevice?.category {
-              let languageCode = state.selectedLanguage?.code ?? "en"
-              screen.wrappedValue.setScreenshotImageData(
-                imageData, for: languageCode, category: category)
+          let ext = url.pathExtension.lowercased()
+          if VideoLoader.supportedExtensions.contains(ext) {
+            handleVideoURL(url, screen: screen)
+          } else {
+            do {
+              let imageData = try ImageLoader.loadImage(from: url)
+              if let category = state.selectedDevice?.category {
+                let languageCode = state.selectedLanguage?.code ?? "en"
+                screen.wrappedValue.setScreenshotImageData(
+                  imageData, for: languageCode, category: category)
+              }
+            } catch {
+              imageLoadError = error.localizedDescription
+              showImageLoadError = true
             }
-          } catch {
-            imageLoadError = error.localizedDescription
-            showImageLoadError = true
           }
         }
       }
@@ -926,6 +1038,64 @@ struct PropertiesPanelView: View {
     }
 
     return false
+  }
+
+  // MARK: - Video helpers
+
+  /// Load a video URL, generate bookmark + thumbnail, and update the screen model.
+  private func handleVideoURL(_ url: URL, screen: Binding<Screen>) {
+    let accessing = url.startAccessingSecurityScopedResource()
+    defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+    do {
+      let (bookmarkData, duration) = try VideoLoader.loadVideo(from: url)
+      guard let category = state.selectedDevice?.category else { return }
+      let languageCode = state.selectedLanguage?.code ?? "en"
+      screen.wrappedValue.setScreenshotVideo(
+        bookmarkData: bookmarkData, posterTime: 0,
+        for: languageCode, category: category)
+      videoDuration = duration
+      videoPosterTime = 0
+      videoThumbnail = nil
+      // Resolve the bookmark we just saved and generate thumbnail (security scope managed inside Task)
+      let savedBookmark = bookmarkData
+      Task {
+        guard let resolvedURL = VideoLoader.resolveBookmark(savedBookmark) else { return }
+        let taskAccessing = resolvedURL.startAccessingSecurityScopedResource()
+        defer { if taskAccessing { resolvedURL.stopAccessingSecurityScopedResource() } }
+        if let thumbData = await VideoLoader.generateThumbnail(url: resolvedURL, at: 0) {
+          videoThumbnail = PlatformImage(data: thumbData)
+        }
+      }
+    } catch {
+      imageLoadError = error.localizedDescription
+      showImageLoadError = true
+    }
+  }
+
+  /// Refresh video state (thumbnail + duration) from the current bookmark, e.g. on appear.
+  private func refreshVideoState(screen: Screen) {
+    let languageCode = state.selectedLanguage?.code ?? "en"
+    guard let category = state.selectedDevice?.category,
+      screen.hasVideo(for: languageCode, category: category),
+      let bookmarkData = screen.screenshotVideoBookmarkData(for: languageCode, category: category),
+      let url = VideoLoader.resolveBookmark(bookmarkData)
+    else {
+      videoThumbnail = nil
+      videoDuration = 0
+      videoPosterTime = 0
+      return
+    }
+    videoPosterTime = screen.videoPosterTime(for: languageCode, category: category)
+    let accessing = url.startAccessingSecurityScopedResource()
+    videoDuration = VideoLoader.duration(of: url)
+    if accessing { url.stopAccessingSecurityScopedResource() }
+    Task {
+      let accessing2 = url.startAccessingSecurityScopedResource()
+      defer { if accessing2 { url.stopAccessingSecurityScopedResource() } }
+      if let thumbData = await VideoLoader.generateThumbnail(url: url, at: videoPosterTime) {
+        videoThumbnail = PlatformImage(data: thumbData)
+      }
+    }
   }
 
   // MARK: - No Selection

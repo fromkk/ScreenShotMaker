@@ -6,6 +6,8 @@ struct CanvasView: View {
   @State private var imageLoadError: String?
   @State private var showImageLoadError = false
   @GestureState private var magnification: CGFloat = 1.0
+  // Keys: "screenID-languageCode-deviceCategory"
+  @State private var videoThumbnails: [String: PlatformImage] = [:]
 
   private var effectiveZoom: Double {
     min(3.0, max(0.1, state.zoomScale * magnification))
@@ -95,7 +97,6 @@ struct CanvasView: View {
   private func layoutContent(screen: Screen, device: DeviceSize) -> some View {
     let sf = scaleFactor(for: device)
     let ps = previewScale
-    let sp = ScalingService.scaledPadding(24, factor: sf) * ps
     let outerPad = ScalingService.scaledPadding(32, factor: sf) * ps
     let textImageSpacing = screen.textToImageSpacing * sf * ps
 
@@ -187,29 +188,80 @@ struct CanvasView: View {
   @ViewBuilder
   private func screenshotPlaceholder(screen: Screen) -> some View {
     let languageCode = state.selectedLanguage?.code ?? "en"
-    let screenshotContent = RoundedRectangle(cornerRadius: 8)
-      .fill(.white)
-      .overlay {
+
+    // Build the inner content: thumbnail OR static image OR empty placeholder
+    let innerContent = AnyView(
+      Group {
         if let device = state.selectedDevice,
-          let imageData = screen.screenshotImageData(for: languageCode, category: device.category),
+          screen.hasVideo(for: languageCode, category: device.category)
+        {
+          // Include bookmark hash in the key so replacing a video invalidates the cache
+          let bookmarkHash = screen.screenshotVideoBookmarkData(
+            for: languageCode, category: device.category).map { "\($0.hashValue)" } ?? "none"
+          let thumbKey = "\(screen.id)-\(languageCode)-\(device.category.rawValue)-\(bookmarkHash)"
+          if let thumbnail = videoThumbnails[thumbKey] {
+            Image(platformImage: thumbnail)
+              .resizable()
+              .aspectRatio(
+                contentMode: screen.screenshotContentMode == .fill ? .fill : .fit
+              )
+              .clipShape(RoundedRectangle(cornerRadius: 8))
+          } else {
+            ZStack {
+              Color.black
+              ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .task(id: thumbKey) {
+              guard let bookmarkData = screen.screenshotVideoBookmarkData(
+                for: languageCode, category: device.category),
+                let videoURL = VideoLoader.resolveBookmark(bookmarkData)
+              else { return }
+              let posterTime = screen.videoPosterTime(
+                for: languageCode, category: device.category)
+              let accessing = videoURL.startAccessingSecurityScopedResource()
+              defer { if accessing { videoURL.stopAccessingSecurityScopedResource() } }
+              if let data = await VideoLoader.generateThumbnail(
+                url: videoURL, at: posterTime),
+                let img = PlatformImage(data: data)
+              {
+                videoThumbnails[thumbKey] = img
+              }
+            }
+          }
+        } else if let device = state.selectedDevice,
+          let imageData = screen.screenshotImageData(
+            for: languageCode, category: device.category),
           let platformImage = PlatformImage(data: imageData)
         {
           Image(platformImage: platformImage)
             .resizable()
-            .aspectRatio(contentMode: screen.screenshotContentMode == .fill ? .fill : .fit)
+            .aspectRatio(
+              contentMode: screen.screenshotContentMode == .fill ? .fill : .fit
+            )
             .clipShape(RoundedRectangle(cornerRadius: 8))
         } else {
           VStack(spacing: 6) {
             Image(systemName: "photo.badge.plus")
               .font(.title2)
               .foregroundStyle(.tertiary)
-            Text("Drop screenshot")
+            Text("Drop screenshot or video")
               .font(.caption2)
               .foregroundStyle(.tertiary)
           }
         }
       }
-      .onDrop(of: [.fileURL, .image], isTargeted: nil) { providers in
+    )
+
+    let screenshotContent = RoundedRectangle(cornerRadius: 8)
+      .fill(.white)
+      .overlay { innerContent }
+      .onDrop(
+        of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie],
+        isTargeted: nil
+      ) { providers in
         handleDrop(providers: providers)
       }
 
@@ -221,12 +273,13 @@ struct CanvasView: View {
         Double(device.effectiveHeight(isLandscape: screen.isLandscape)) * effectiveZoom
         * 0.15 * 0.7
       let languageCode = state.selectedLanguage?.code ?? "en"
-      let imageData = screen.screenshotImageData(for: languageCode, category: device.category)
-      let fitted = ScalingService.frameFittingSize(
-        imageData: imageData,
-        boxWidth: baseFrameW,
-        boxHeight: baseFrameH,
-        fitToImage: screen.fitFrameToImage
+      let bookmarkHash = screen.screenshotVideoBookmarkData(
+        for: languageCode, category: device.category).map { "\($0.hashValue)" } ?? "none"
+      let thumbKey = "\(screen.id)-\(languageCode)-\(device.category.rawValue)-\(bookmarkHash)"
+      let fitted = fittedPreviewSize(
+        screen: screen, device: device,
+        boxWidth: baseFrameW, boxHeight: baseFrameH,
+        languageCode: languageCode, thumbKey: thumbKey
       )
       DeviceFrameView(
         category: device.category,
@@ -241,6 +294,35 @@ struct CanvasView: View {
     }
   }
 
+  // MARK: - AVPlayer management
+
+  /// Returns the fitted DeviceFrameView screen size for the canvas preview,
+  /// honouring `fitFrameToImage` for both videos (thumbnail) and static images.
+  private func fittedPreviewSize(
+    screen: Screen, device: DeviceSize,
+    boxWidth: CGFloat, boxHeight: CGFloat,
+    languageCode: String, thumbKey: String
+  ) -> (width: CGFloat, height: CGFloat) {
+    let videoThumbSize: CGSize? = videoThumbnails[thumbKey].map { thumb in
+      #if canImport(AppKit)
+      thumb.size
+      #else
+      CGSize(width: thumb.size.width * thumb.scale, height: thumb.size.height * thumb.scale)
+      #endif
+    }
+    if let vs = videoThumbSize {
+      return ScalingService.frameFittingSize(
+        nativeSize: vs, boxWidth: boxWidth, boxHeight: boxHeight,
+        fitToImage: screen.fitFrameToImage)
+    }
+    let imageData = screen.screenshotImageData(for: languageCode, category: device.category)
+    return ScalingService.frameFittingSize(
+      imageData: imageData, boxWidth: boxWidth, boxHeight: boxHeight,
+      fitToImage: screen.fitFrameToImage)
+  }
+
+  // MARK: - AVPlayer management (original)
+
   private func handleDrop(providers: [NSItemProvider]) -> Bool {
     guard let provider = providers.first else { return false }
 
@@ -251,16 +333,39 @@ struct CanvasView: View {
           let url = URL(dataRepresentation: data, relativeTo: nil)
         else { return }
         DispatchQueue.main.async {
-          do {
-            let imageData = try ImageLoader.loadImage(from: url)
-            if let category = state.selectedDevice?.category {
-              let languageCode = state.selectedLanguage?.code ?? "en"
-              state.selectedScreen?.setScreenshotImageData(
-                imageData, for: languageCode, category: category)
+          let ext = url.pathExtension.lowercased()
+          if VideoLoader.supportedExtensions.contains(ext) {
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            do {
+              let (bookmarkData, _) = try VideoLoader.loadVideo(from: url)
+              if let category = state.selectedDevice?.category {
+                let languageCode = state.selectedLanguage?.code ?? "en"
+                state.selectedScreen?.setScreenshotVideo(
+                  bookmarkData: bookmarkData, posterTime: 0,
+                  for: languageCode, category: category)
+                // Invalidate cached thumbnails for this screen/language/device combo
+                let baseKey = "\(state.selectedScreen?.id.uuidString ?? "")-\(languageCode)-\(category.rawValue)"
+                videoThumbnails.keys.filter { $0.hasPrefix(baseKey) }.forEach {
+                  videoThumbnails.removeValue(forKey: $0)
+                }
+              }
+            } catch {
+              imageLoadError = error.localizedDescription
+              showImageLoadError = true
             }
-          } catch {
-            imageLoadError = error.localizedDescription
-            showImageLoadError = true
+          } else {
+            do {
+              let imageData = try ImageLoader.loadImage(from: url)
+              if let category = state.selectedDevice?.category {
+                let languageCode = state.selectedLanguage?.code ?? "en"
+                state.selectedScreen?.setScreenshotImageData(
+                  imageData, for: languageCode, category: category)
+              }
+            } catch {
+              imageLoadError = error.localizedDescription
+              showImageLoadError = true
+            }
           }
         }
       }

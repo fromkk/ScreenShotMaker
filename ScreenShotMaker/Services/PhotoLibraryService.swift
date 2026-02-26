@@ -11,6 +11,13 @@
       }
     }
 
+    /// Save a single video file to the photo library
+    static func saveVideo(at url: URL) async throws {
+      try await PHPhotoLibrary.shared().performChanges {
+        PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+      }
+    }
+
     /// Save a single image to the photo library
     static func saveImage(_ imageData: Data) async throws {
       try await PHPhotoLibrary.shared().performChanges {

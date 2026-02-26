@@ -5,13 +5,16 @@ import SwiftUI
 #endif
 
 @Observable
-final class ExportProgressState {
+final class ExportProgressState: @unchecked Sendable {
   var isExporting: Bool = false
   var completed: Int = 0
   var total: Int = 0
   var currentItem: String = ""
   var errors: [String] = []
   var isCancelled: Bool = false
+  /// フレームレベルの進捗 (動画エクスポート中のみ non-zero)
+  var currentFrameCompleted: Int = 0
+  var currentFrameTotal: Int = 0
 
   var isFinished: Bool {
     !isExporting && total > 0
@@ -22,6 +25,11 @@ final class ExportProgressState {
     return Double(completed) / Double(total)
   }
 
+  var frameProgress: Double {
+    guard currentFrameTotal > 0 else { return 0 }
+    return Double(currentFrameCompleted) / Double(currentFrameTotal)
+  }
+
   func reset() {
     isExporting = false
     completed = 0
@@ -29,6 +37,13 @@ final class ExportProgressState {
     currentItem = ""
     errors = []
     isCancelled = false
+    currentFrameCompleted = 0
+    currentFrameTotal = 0
+  }
+
+  func resetFrameProgress() {
+    currentFrameCompleted = 0
+    currentFrameTotal = 0
   }
 }
 
@@ -67,6 +82,17 @@ struct ExportProgressView: View {
           .foregroundStyle(.secondary)
           .lineLimit(1)
           .truncationMode(.middle)
+      }
+
+      if progressState.currentFrameTotal > 0 {
+        VStack(spacing: 4) {
+          ProgressView(value: progressState.frameProgress)
+            .progressViewStyle(.linear)
+            .tint(.secondary)
+          Text("Frame \(progressState.currentFrameCompleted) / \(progressState.currentFrameTotal)")
+            .font(.system(size: 11, design: .monospaced))
+            .foregroundStyle(.tertiary)
+        }
       }
 
       Button("Cancel") {
