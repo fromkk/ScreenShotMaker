@@ -195,7 +195,10 @@ struct CanvasView: View {
         if let device = state.selectedDevice,
           screen.hasVideo(for: languageCode, category: device.category)
         {
-          let thumbKey = "\(screen.id)-\(languageCode)-\(device.category.rawValue)"
+          // Include bookmark hash in the key so replacing a video invalidates the cache
+          let bookmarkHash = screen.screenshotVideoBookmarkData(
+            for: languageCode, category: device.category).map { "\($0.hashValue)" } ?? "none"
+          let thumbKey = "\(screen.id)-\(languageCode)-\(device.category.rawValue)-\(bookmarkHash)"
           if let thumbnail = videoThumbnails[thumbKey] {
             Image(platformImage: thumbnail)
               .resizable()
@@ -270,7 +273,9 @@ struct CanvasView: View {
         Double(device.effectiveHeight(isLandscape: screen.isLandscape)) * effectiveZoom
         * 0.15 * 0.7
       let languageCode = state.selectedLanguage?.code ?? "en"
-      let thumbKey = "\(screen.id)-\(languageCode)-\(device.category.rawValue)"
+      let bookmarkHash = screen.screenshotVideoBookmarkData(
+        for: languageCode, category: device.category).map { "\($0.hashValue)" } ?? "none"
+      let thumbKey = "\(screen.id)-\(languageCode)-\(device.category.rawValue)-\(bookmarkHash)"
       let fitted = fittedPreviewSize(
         screen: screen, device: device,
         boxWidth: baseFrameW, boxHeight: baseFrameH,
@@ -339,9 +344,11 @@ struct CanvasView: View {
                 state.selectedScreen?.setScreenshotVideo(
                   bookmarkData: bookmarkData, posterTime: 0,
                   for: languageCode, category: category)
-                // Invalidate cached player so a new one is created
-                let key = "\(state.selectedScreen?.id.uuidString ?? "")-\(languageCode)-\(category.rawValue)"
-                videoThumbnails.removeValue(forKey: key)
+                // Invalidate cached thumbnails for this screen/language/device combo
+                let baseKey = "\(state.selectedScreen?.id.uuidString ?? "")-\(languageCode)-\(category.rawValue)"
+                videoThumbnails.keys.filter { $0.hasPrefix(baseKey) }.forEach {
+                  videoThumbnails.removeValue(forKey: $0)
+                }
               }
             } catch {
               imageLoadError = error.localizedDescription
