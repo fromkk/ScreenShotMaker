@@ -38,7 +38,8 @@ enum VideoExportService {
     _ screen: Screen,
     device: DeviceSize,
     languageCode: String,
-    outputURL: URL
+    outputURL: URL,
+    onFrameProgress: (@Sendable (Int, Int) -> Void)? = nil
   ) async throws {
     guard let bookmarkData = screen.screenshotVideoBookmarkData(
       for: languageCode, category: device.category)
@@ -56,7 +57,8 @@ enum VideoExportService {
       screen: screen,
       device: device,
       languageCode: languageCode,
-      outputURL: outputURL
+      outputURL: outputURL,
+      onFrameProgress: onFrameProgress
     )
   }
 
@@ -89,8 +91,15 @@ enum VideoExportService {
           let outputURL = deviceDir.appendingPathComponent("\(screen.name).mp4")
 
           do {
-            try await exportVideoScreen(
-              screen, device: device, languageCode: language.code, outputURL: outputURL)
+            progressState.resetFrameProgress()
+          try await exportVideoScreen(
+              screen, device: device, languageCode: language.code, outputURL: outputURL,
+              onFrameProgress: { done, total in
+                DispatchQueue.main.async {
+                  progressState.currentFrameCompleted = done
+                  progressState.currentFrameTotal = total
+                }
+              })
           } catch {
             progressState.errors.append(
               "Video export failed: \(screen.name) / \(device.name) – \(error.localizedDescription)"
@@ -112,7 +121,8 @@ enum VideoExportService {
     screen: Screen,
     device: DeviceSize,
     languageCode: String,
-    outputURL: URL
+    outputURL: URL,
+    onFrameProgress: (@Sendable (Int, Int) -> Void)? = nil
   ) async throws {
     let exportWidth = Int(device.effectiveWidth(isLandscape: screen.isLandscape))
     let exportHeight = Int(device.effectiveHeight(isLandscape: screen.isLandscape))
@@ -145,6 +155,7 @@ enum VideoExportService {
     let h      = exportHeight
     let overlay = overlayImageData
 
+    let frameProgress = onFrameProgress
     try await Task.detached(priority: .userInitiated) {
       try await Self.runExportPipeline(
         videoURL: url,
@@ -154,7 +165,8 @@ enum VideoExportService {
         contentMode: mode,
         exportWidth: w,
         exportHeight: h,
-        outputURL: outURL
+        outputURL: outURL,
+        onFrameProgress: frameProgress
       )
     }.value
   }
@@ -169,7 +181,8 @@ enum VideoExportService {
     contentMode: ScreenshotContentMode,
     exportWidth: Int,
     exportHeight: Int,
-    outputURL: URL
+    outputURL: URL,
+    onFrameProgress: (@Sendable (Int, Int) -> Void)? = nil
   ) async throws {
     let asset = AVURLAsset(url: videoURL)
 
@@ -260,6 +273,19 @@ enum VideoExportService {
       }
     }
 
+    // Estimate total frame count (nominalFrameRate × duration)
+    let nominalFPS: Float
+    let assetDuration: Double
+    if #available(iOS 16, macOS 13, *) {
+      nominalFPS = (try? await videoTrack.load(.nominalFrameRate)) ?? 30
+      let dur = try? await asset.load(.duration)
+      assetDuration = dur.map { CMTimeGetSeconds($0) } ?? 0
+    } else {
+      nominalFPS = videoTrack.nominalFrameRate
+      assetDuration = CMTimeGetSeconds(asset.duration)
+    }
+    let totalFrames = max(1, Int((Double(nominalFPS) * assetDuration).rounded()))
+
     guard reader.startReading() else {
       throw VideoExportError.exportFailed(
         reader.error?.localizedDescription ?? "AVAssetReader failed to start")
@@ -287,6 +313,7 @@ enum VideoExportService {
 
     // Video: suspend (not block) until all frames are composited and written
     try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+      var frameCount = 0
       writerVideoInput.requestMediaDataWhenReady(on: videoQueue) {
         while writerVideoInput.isReadyForMoreMediaData {
           if let sampleBuffer = videoOutput.copyNextSampleBuffer() {
@@ -304,6 +331,8 @@ enum VideoExportService {
             ) {
               adaptor.append(composited, withPresentationTime: pts)
             }
+            frameCount += 1
+            onFrameProgress?(frameCount, totalFrames)
             // If composite() returned nil, skip the frame (don't write a wrong-sized buffer)
           } else {
             // No more frames

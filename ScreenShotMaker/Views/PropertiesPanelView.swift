@@ -1055,9 +1055,14 @@ struct PropertiesPanelView: View {
         for: languageCode, category: category)
       videoDuration = duration
       videoPosterTime = 0
-      // Generate thumbnail asynchronously
+      videoThumbnail = nil
+      // Resolve the bookmark we just saved and generate thumbnail (security scope managed inside Task)
+      let savedBookmark = bookmarkData
       Task {
-        if let thumbData = await VideoLoader.generateThumbnail(url: url, at: 0) {
+        guard let resolvedURL = VideoLoader.resolveBookmark(savedBookmark) else { return }
+        let taskAccessing = resolvedURL.startAccessingSecurityScopedResource()
+        defer { if taskAccessing { resolvedURL.stopAccessingSecurityScopedResource() } }
+        if let thumbData = await VideoLoader.generateThumbnail(url: resolvedURL, at: 0) {
           videoThumbnail = PlatformImage(data: thumbData)
         }
       }

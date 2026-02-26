@@ -448,7 +448,13 @@ private struct ExportButton: View {
         Task {
           do {
             try await VideoExportService.exportVideoScreen(
-              screen, device: device, languageCode: languageCode, outputURL: tempURL)
+              screen, device: device, languageCode: languageCode, outputURL: tempURL,
+              onFrameProgress: { done, total in
+                DispatchQueue.main.async {
+                  videoProgressState.currentFrameCompleted = done
+                  videoProgressState.currentFrameTotal = total
+                }
+              })
             videoProgressState.completed = 1
             try await PhotoLibraryService.requestAuthorization()
             try await PhotoLibraryService.saveVideo(at: tempURL)
@@ -496,7 +502,13 @@ private struct ExportButton: View {
       Task {
         do {
           try await VideoExportService.exportVideoScreen(
-            screen, device: device, languageCode: languageCode, outputURL: tempURL)
+            screen, device: device, languageCode: languageCode, outputURL: tempURL,
+            onFrameProgress: { done, total in
+              DispatchQueue.main.async {
+                videoProgressState.currentFrameCompleted = done
+                videoProgressState.currentFrameTotal = total
+              }
+            })
           videoProgressState.completed = 1
           videoProgressState.isExporting = false
           let data = try Data(contentsOf: tempURL)

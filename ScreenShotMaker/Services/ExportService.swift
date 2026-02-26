@@ -278,14 +278,22 @@ enum ExportService {
           let langName = String(localized: language.displayName)
           progressState.currentItem = "\(screen.name) / \(device.name) / \(langName)"
           let fileURL = deviceDir.appendingPathComponent("\(screen.name).mp4")
+          progressState.resetFrameProgress()
           do {
             try await VideoExportService.exportVideoScreen(
-              screen, device: device, languageCode: language.code, outputURL: fileURL)
+              screen, device: device, languageCode: language.code, outputURL: fileURL,
+              onFrameProgress: { done, total in
+                DispatchQueue.main.async {
+                  progressState.currentFrameCompleted = done
+                  progressState.currentFrameTotal = total
+                }
+              })
           } catch {
             progressState.errors.append(
               "Video export failed: \(screen.name) / \(device.name) – \(error.localizedDescription)"
             )
           }
+          progressState.resetFrameProgress()
           completed += 1
           progressState.completed = completed
         }

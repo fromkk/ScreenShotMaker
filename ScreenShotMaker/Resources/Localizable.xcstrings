@@ -1109,6 +1109,16 @@
         }
       }
     },
+    "Frame %lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Frame %1$lld / %2$lld"
+          }
+        }
+      }
+    },
     "Frame aspect ratio will match the screenshot image" : {
 
     },
