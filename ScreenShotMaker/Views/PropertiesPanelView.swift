@@ -26,7 +26,8 @@ struct PropertiesPanelView: View {
   private var availableFontFamilies: [String] {
     let families = FontHelper.availableFontFamilies
     // Ensure current selection is always present
-    if let screen = state.selectedScreen, !families.contains(screen.fontFamily) {
+    if let screen = state.selectedScreen, !families.contains(screen.fontFamily)
+    {
       return ([screen.fontFamily] + families).sorted()
     }
     return families
@@ -100,7 +101,10 @@ struct PropertiesPanelView: View {
     PropertySection(title: "Layout") {
       VStack(alignment: .leading, spacing: 10) {
         LazyVGrid(
-          columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8
+          columns: [
+            GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()),
+          ],
+          spacing: 8
         ) {
           ForEach(LayoutPreset.allCases) { preset in
             LayoutPresetButton(
@@ -132,13 +136,17 @@ struct PropertiesPanelView: View {
                 value: Binding(
                   get: { Double(screen.wrappedValue.textToImageSpacing) },
                   set: { screen.wrappedValue.textToImageSpacing = CGFloat($0) }
-                ), in: 0...100, step: 4)
+                ),
+                in: 0...100,
+                step: 4
+              )
               TextField(
                 "",
                 value: Binding(
                   get: { Double(screen.wrappedValue.textToImageSpacing) },
                   set: { screen.wrappedValue.textToImageSpacing = CGFloat($0) }
-                ), format: .number
+                ),
+                format: .number
               )
               .textFieldStyle(.roundedBorder)
               #if os(iOS)
@@ -159,7 +167,8 @@ struct PropertiesPanelView: View {
     state.selectedLanguage?.code ?? "en"
   }
 
-  private func localizedTitleBinding(screen: Binding<Screen>) -> Binding<String> {
+  private func localizedTitleBinding(screen: Binding<Screen>) -> Binding<String>
+  {
     Binding(
       get: { screen.wrappedValue.text(for: currentLanguageCode).title },
       set: { newValue in
@@ -170,7 +179,9 @@ struct PropertiesPanelView: View {
     )
   }
 
-  private func localizedSubtitleBinding(screen: Binding<Screen>) -> Binding<String> {
+  private func localizedSubtitleBinding(screen: Binding<Screen>) -> Binding<
+    String
+  > {
     Binding(
       get: { screen.wrappedValue.text(for: currentLanguageCode).subtitle },
       set: { newValue in
@@ -190,7 +201,10 @@ struct PropertiesPanelView: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(Color.platformControl, in: RoundedRectangle(cornerRadius: 4))
+            .background(
+              Color.platformControl,
+              in: RoundedRectangle(cornerRadius: 4)
+            )
 
           Spacer()
 
@@ -242,9 +256,12 @@ struct PropertiesPanelView: View {
         }
 
         PropertyField(label: "Subtitle") {
-          TextField("Enter subtitle", text: localizedSubtitleBinding(screen: screen))
-            .textFieldStyle(.roundedBorder)
-            .font(.system(size: 12))
+          TextField(
+            "Enter subtitle",
+            text: localizedSubtitleBinding(screen: screen)
+          )
+          .textFieldStyle(.roundedBorder)
+          .font(.system(size: 12))
           textStyleToolbar(style: screen.subtitleStyle, label: "Subtitle")
         }
 
@@ -278,7 +295,10 @@ struct PropertiesPanelView: View {
                   let category = state.selectedDevice?.category ?? .iPhone
                   screen.wrappedValue.setFontSize($0, for: category)
                 }
-              ), in: 16...200, step: 4)
+              ),
+              in: 16...200,
+              step: 4
+            )
             TextField(
               "",
               value: Binding(
@@ -290,7 +310,8 @@ struct PropertiesPanelView: View {
                   let category = state.selectedDevice?.category ?? .iPhone
                   screen.wrappedValue.setFontSize($0, for: category)
                 }
-              ), format: .number
+              ),
+              format: .number
             )
             .textFieldStyle(.roundedBorder)
             #if os(iOS)
@@ -327,7 +348,9 @@ struct PropertiesPanelView: View {
     VStack(alignment: .leading, spacing: 8) {
       Text("Translate to:")
         .font(.system(size: 12, weight: .semibold))
-      ForEach(state.project.languages.filter({ $0.code != currentLanguageCode })) { language in
+      ForEach(
+        state.project.languages.filter({ $0.code != currentLanguageCode })
+      ) { language in
         Button {
           showTranslatePopover = false
           startTranslation(targetLanguageCode: language.code)
@@ -338,7 +361,9 @@ struct PropertiesPanelView: View {
         }
         .buttonStyle(.plain)
       }
-      if state.project.languages.filter({ $0.code != currentLanguageCode }).isEmpty {
+      if state.project.languages.filter({ $0.code != currentLanguageCode })
+        .isEmpty
+      {
         Text("Add more languages to translate")
           .font(.system(size: 11))
           .foregroundStyle(.secondary)
@@ -376,11 +401,19 @@ struct PropertiesPanelView: View {
     var requests: [TranslationSession.Request] = []
     if !sourceText.title.isEmpty {
       requests.append(
-        TranslationSession.Request(sourceText: sourceText.title, clientIdentifier: "title"))
+        TranslationSession.Request(
+          sourceText: sourceText.title,
+          clientIdentifier: "title"
+        )
+      )
     }
     if !sourceText.subtitle.isEmpty {
       requests.append(
-        TranslationSession.Request(sourceText: sourceText.subtitle, clientIdentifier: "subtitle"))
+        TranslationSession.Request(
+          sourceText: sourceText.subtitle,
+          clientIdentifier: "subtitle"
+        )
+      )
     }
 
     guard !requests.isEmpty else {
@@ -412,7 +445,9 @@ struct PropertiesPanelView: View {
     translationTargetCode = nil
   }
 
-  private func textStyleToolbar(style: Binding<TextStyle>, label: String) -> some View {
+  private func textStyleToolbar(style: Binding<TextStyle>, label: String)
+    -> some View
+  {
     HStack(spacing: 4) {
       Toggle(isOn: style.isBold) {
         Text("B").font(.system(size: 11, weight: .bold))
@@ -431,9 +466,15 @@ struct PropertiesPanelView: View {
       Spacer()
 
       Picker("", selection: style.alignment) {
-        Image(systemName: "text.alignleft").tag(TextStyle.TextStyleAlignment.leading)
-        Image(systemName: "text.aligncenter").tag(TextStyle.TextStyleAlignment.center)
-        Image(systemName: "text.alignright").tag(TextStyle.TextStyleAlignment.trailing)
+        Image(systemName: "text.alignleft").tag(
+          TextStyle.TextStyleAlignment.leading
+        )
+        Image(systemName: "text.aligncenter").tag(
+          TextStyle.TextStyleAlignment.center
+        )
+        Image(systemName: "text.alignright").tag(
+          TextStyle.TextStyleAlignment.trailing
+        )
       }
       .pickerStyle(.segmented)
       .frame(width: 100)
@@ -469,10 +510,13 @@ struct PropertiesPanelView: View {
         get: { backgroundTypeIndex(screen.wrappedValue.background) },
         set: { newIndex in
           switch newIndex {
-          case 0: screen.wrappedValue.background = .solidColor(HexColor("#667EEA"))
+          case 0:
+            screen.wrappedValue.background = .solidColor(HexColor("#667EEA"))
           case 1:
             screen.wrappedValue.background = .gradient(
-              startColor: HexColor("#667EEA"), endColor: HexColor("#764BA2"))
+              startColor: HexColor("#667EEA"),
+              endColor: HexColor("#764BA2")
+            )
           default: screen.wrappedValue.background = .image(data: Data())
           }
         }
@@ -496,10 +540,16 @@ struct PropertiesPanelView: View {
     case .gradient(let start, let end):
       HStack(spacing: 8) {
         colorField(label: "Start", hex: start.hex) { newHex in
-          screen.wrappedValue.background = .gradient(startColor: HexColor(newHex), endColor: end)
+          screen.wrappedValue.background = .gradient(
+            startColor: HexColor(newHex),
+            endColor: end
+          )
         }
         colorField(label: "End", hex: end.hex) { newHex in
-          screen.wrappedValue.background = .gradient(startColor: start, endColor: HexColor(newHex))
+          screen.wrappedValue.background = .gradient(
+            startColor: start,
+            endColor: HexColor(newHex)
+          )
         }
       }
 
@@ -598,8 +648,15 @@ struct PropertiesPanelView: View {
               ColorPicker(
                 "",
                 selection: Binding(
-                  get: { Color(hex: screen.wrappedValue.deviceFrameConfig.frameColorHex) },
-                  set: { screen.wrappedValue.deviceFrameConfig.frameColorHex = $0.toHex() }
+                  get: {
+                    Color(
+                      hex: screen.wrappedValue.deviceFrameConfig.frameColorHex
+                    )
+                  },
+                  set: {
+                    screen.wrappedValue.deviceFrameConfig.frameColorHex =
+                      $0.toHex()
+                  }
                 )
               )
               .labelsHidden()
@@ -612,39 +669,64 @@ struct PropertiesPanelView: View {
 
           PropertyField(label: "Bezel Width") {
             HStack {
-              Slider(value: screen.deviceFrameConfig.bezelWidthRatio, in: 0.0...3.0, step: 0.1)
-              Text(String(format: "%.1f×", screen.wrappedValue.deviceFrameConfig.bezelWidthRatio))
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 30)
+              Slider(
+                value: screen.deviceFrameConfig.bezelWidthRatio,
+                in: 0.0...3.0,
+                step: 0.1
+              )
+              Text(
+                String(
+                  format: "%.1f×",
+                  screen.wrappedValue.deviceFrameConfig.bezelWidthRatio
+                )
+              )
+              .font(.system(size: 10, design: .monospaced))
+              .foregroundStyle(.secondary)
+              .frame(width: 30)
             }
           }
 
           PropertyField(label: "Corner Radius") {
             HStack {
-              Slider(value: screen.deviceFrameConfig.cornerRadiusRatio, in: 0.0...3.0, step: 0.1)
-              Text(String(format: "%.1f×", screen.wrappedValue.deviceFrameConfig.cornerRadiusRatio))
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 30)
+              Slider(
+                value: screen.deviceFrameConfig.cornerRadiusRatio,
+                in: 0.0...3.0,
+                step: 0.1
+              )
+              Text(
+                String(
+                  format: "%.1f×",
+                  screen.wrappedValue.deviceFrameConfig.cornerRadiusRatio
+                )
+              )
+              .font(.system(size: 10, design: .monospaced))
+              .foregroundStyle(.secondary)
+              .frame(width: 30)
             }
           }
 
           if state.selectedDevice?.category == .iPhone {
             Divider()
 
-            Toggle("Show Dynamic Island", isOn: screen.deviceFrameConfig.showDynamicIsland)
-              .font(.system(size: 12))
+            Toggle(
+              "Show Dynamic Island",
+              isOn: screen.deviceFrameConfig.showDynamicIsland
+            )
+            .font(.system(size: 12))
 
             if screen.wrappedValue.deviceFrameConfig.showDynamicIsland {
               PropertyField(label: "Island Width") {
                 HStack {
                   Slider(
-                    value: screen.deviceFrameConfig.dynamicIslandWidthRatio, in: 0.1...3.0,
-                    step: 0.1)
+                    value: screen.deviceFrameConfig.dynamicIslandWidthRatio,
+                    in: 0.1...3.0,
+                    step: 0.1
+                  )
                   Text(
                     String(
-                      format: "%.1f×", screen.wrappedValue.deviceFrameConfig.dynamicIslandWidthRatio
+                      format: "%.1f×",
+                      screen.wrappedValue.deviceFrameConfig
+                        .dynamicIslandWidthRatio
                     )
                   )
                   .font(.system(size: 10, design: .monospaced))
@@ -656,12 +738,16 @@ struct PropertiesPanelView: View {
               PropertyField(label: "Island Height") {
                 HStack {
                   Slider(
-                    value: screen.deviceFrameConfig.dynamicIslandHeightRatio, in: 0.1...3.0,
-                    step: 0.1)
+                    value: screen.deviceFrameConfig.dynamicIslandHeightRatio,
+                    in: 0.1...3.0,
+                    step: 0.1
+                  )
                   Text(
                     String(
                       format: "%.1f×",
-                      screen.wrappedValue.deviceFrameConfig.dynamicIslandHeightRatio)
+                      screen.wrappedValue.deviceFrameConfig
+                        .dynamicIslandHeightRatio
+                    )
                   )
                   .font(.system(size: 10, design: .monospaced))
                   .foregroundStyle(.secondary)
@@ -704,10 +790,18 @@ struct PropertiesPanelView: View {
       VStack(spacing: 8) {
         let category = state.selectedDevice?.category
         let languageCode = state.selectedLanguage?.code ?? "en"
-        let hasVideo = category.map { screen.wrappedValue.hasVideo(for: languageCode, category: $0) } ?? false
-        let hasImage = !hasVideo && category.map {
-          screen.wrappedValue.screenshotImageData(for: languageCode, category: $0) != nil
-        } ?? false
+        let hasVideo =
+          category.map {
+            screen.wrappedValue.hasVideo(for: languageCode, category: $0)
+          } ?? false
+        let hasImage =
+          !hasVideo
+          && category.map {
+            screen.wrappedValue.screenshotImageData(
+              for: languageCode,
+              category: $0
+            ) != nil
+          } ?? false
 
         if hasVideo, let category = category {
           // Video preview + controls
@@ -730,7 +824,9 @@ struct PropertiesPanelView: View {
             }
             Button {
               screen.wrappedValue.clearScreenshotMedia(
-                for: languageCode, category: category)
+                for: languageCode,
+                category: category
+              )
               videoThumbnail = nil
               videoDuration = 0
               videoPosterTime = 0
@@ -742,7 +838,10 @@ struct PropertiesPanelView: View {
             .buttonStyle(.plain)
             .padding(4)
           }
-          .onDrop(of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie], isTargeted: nil) { providers in
+          .onDrop(
+            of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie],
+            isTargeted: nil
+          ) { providers in
             handleScreenshotDrop(providers: providers, screen: screen)
           }
 
@@ -758,31 +857,50 @@ struct PropertiesPanelView: View {
                 onEditingChanged: { editing in
                   guard !editing else { return }
                   screen.wrappedValue.setVideoPosterTime(
-                    videoPosterTime, for: languageCode, category: category)
+                    videoPosterTime,
+                    for: languageCode,
+                    category: category
+                  )
                   Task {
                     let langCode = languageCode
                     let cat = category
                     if let bd = screen.wrappedValue.screenshotVideoBookmarkData(
-                      for: langCode, category: cat),
+                      for: langCode,
+                      category: cat
+                    ),
                       let url = VideoLoader.resolveBookmark(bd)
                     {
                       let accessing = url.startAccessingSecurityScopedResource()
-                      defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+                      defer {
+                        if accessing {
+                          url.stopAccessingSecurityScopedResource()
+                        }
+                      }
                       videoThumbnail = await VideoLoader.generateThumbnail(
-                        url: url, at: videoPosterTime).flatMap(PlatformImage.init(data:))
+                        url: url,
+                        at: videoPosterTime
+                      ).flatMap(PlatformImage.init(data:))
                     }
                   }
                 }
               )
-              Text(String(format: "%.1f s / %.1f s", videoPosterTime, videoDuration))
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
+              Text(
+                String(
+                  format: "%.1f s / %.1f s",
+                  videoPosterTime,
+                  videoDuration
+                )
+              )
+              .font(.system(size: 10))
+              .foregroundStyle(.tertiary)
             }
           }
 
         } else if hasImage, let category = category,
           let imageData = screen.wrappedValue.screenshotImageData(
-            for: languageCode, category: category),
+            for: languageCode,
+            category: category
+          ),
           let platformImage = PlatformImage(data: imageData)
         {
           ZStack(alignment: .topTrailing) {
@@ -794,7 +912,10 @@ struct PropertiesPanelView: View {
 
             Button {
               screen.wrappedValue.setScreenshotImageData(
-                nil, for: languageCode, category: category)
+                nil,
+                for: languageCode,
+                category: category
+              )
             } label: {
               Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 16))
@@ -803,7 +924,10 @@ struct PropertiesPanelView: View {
             .buttonStyle(.plain)
             .padding(4)
           }
-          .onDrop(of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie], isTargeted: nil) { providers in
+          .onDrop(
+            of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie],
+            isTargeted: nil
+          ) { providers in
             handleScreenshotDrop(providers: providers, screen: screen)
           }
         } else {
@@ -821,7 +945,10 @@ struct PropertiesPanelView: View {
                   .foregroundStyle(.secondary)
               }
             }
-            .onDrop(of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie], isTargeted: nil) { providers in
+            .onDrop(
+              of: [.fileURL, .image, .movie, .mpeg4Movie, .quickTimeMovie],
+              isTargeted: nil
+            ) { providers in
               handleScreenshotDrop(providers: providers, screen: screen)
             }
         }
@@ -834,11 +961,20 @@ struct PropertiesPanelView: View {
               .frame(maxWidth: .infinity)
           }
 
-          PhotosPicker(selection: $screenshotPhotosItem, matching: .any(of: [.images, .videos])) {
+          PhotosPicker(
+            selection: $screenshotPhotosItem,
+            matching: .any(of: [.images, .videos])
+          ) {
             Label("Photos", systemImage: "photo")
               .frame(maxWidth: .infinity)
           }
         }
+
+        Text(
+          "PNG, JPEG, MP4, MOV, M4V supported\nVideos: 15–30 seconds recommended"
+        )
+        .font(.system(size: 10))
+        .foregroundStyle(.tertiary)
 
         if !screen.wrappedValue.fitFrameToImage {
           PropertyField(label: "Content Mode") {
@@ -849,10 +985,6 @@ struct PropertiesPanelView: View {
             .pickerStyle(.segmented)
           }
         }
-
-        Text("PNG, JPEG, MP4, MOV, M4V supported")
-          .font(.system(size: 10))
-          .foregroundStyle(.tertiary)
       }
     }
     .alert("Image Load Error", isPresented: $showImageLoadError) {
@@ -871,11 +1003,18 @@ struct PropertiesPanelView: View {
       handleScreenshotPhotosItem(newItem, screen: screen)
     }
     .onAppear { refreshVideoState(screen: screen.wrappedValue) }
-    .onChange(of: state.selectedDevice) { _, _ in refreshVideoState(screen: screen.wrappedValue) }
-    .onChange(of: state.selectedLanguage) { _, _ in refreshVideoState(screen: screen.wrappedValue) }
+    .onChange(of: state.selectedDevice) { _, _ in
+      refreshVideoState(screen: screen.wrappedValue)
+    }
+    .onChange(of: state.selectedLanguage) { _, _ in
+      refreshVideoState(screen: screen.wrappedValue)
+    }
   }
 
-  private func handleBackgroundImageImport(result: Result<[URL], Error>, screen: Binding<Screen>) {
+  private func handleBackgroundImageImport(
+    result: Result<[URL], Error>,
+    screen: Binding<Screen>
+  ) {
     switch result {
     case .success(let urls):
       guard let url = urls.first else { return }
@@ -894,7 +1033,10 @@ struct PropertiesPanelView: View {
     }
   }
 
-  private func handleScreenshotImageImport(result: Result<[URL], Error>, screen: Binding<Screen>) {
+  private func handleScreenshotImageImport(
+    result: Result<[URL], Error>,
+    screen: Binding<Screen>
+  ) {
     switch result {
     case .success(let urls):
       guard let url = urls.first else { return }
@@ -908,7 +1050,11 @@ struct PropertiesPanelView: View {
           let data = try ImageLoader.loadImage(from: url)
           if let category = state.selectedDevice?.category {
             let languageCode = state.selectedLanguage?.code ?? "en"
-            screen.wrappedValue.setScreenshotImageData(data, for: languageCode, category: category)
+            screen.wrappedValue.setScreenshotImageData(
+              data,
+              for: languageCode,
+              category: category
+            )
           }
         } catch {
           imageLoadError = error.localizedDescription
@@ -921,7 +1067,10 @@ struct PropertiesPanelView: View {
     }
   }
 
-  private func handleBackgroundPhotosItem(_ item: PhotosPickerItem?, screen: Binding<Screen>) {
+  private func handleBackgroundPhotosItem(
+    _ item: PhotosPickerItem?,
+    screen: Binding<Screen>
+  ) {
     guard let item else { return }
     Task {
       do {
@@ -939,7 +1088,10 @@ struct PropertiesPanelView: View {
     }
   }
 
-  private func handleScreenshotPhotosItem(_ item: PhotosPickerItem?, screen: Binding<Screen>) {
+  private func handleScreenshotPhotosItem(
+    _ item: PhotosPickerItem?,
+    screen: Binding<Screen>
+  ) {
     guard let item else { return }
     Task {
       // Try to load as a movie first (for video items)
@@ -961,14 +1113,19 @@ struct PropertiesPanelView: View {
         }
       } else {
         do {
-          guard let data = try await item.loadTransferable(type: Data.self) else {
+          guard let data = try await item.loadTransferable(type: Data.self)
+          else {
             imageLoadError = "Failed to load image from Photos"
             showImageLoadError = true
             return
           }
           if let category = state.selectedDevice?.category {
             let languageCode = state.selectedLanguage?.code ?? "en"
-            screen.wrappedValue.setScreenshotImageData(data, for: languageCode, category: category)
+            screen.wrappedValue.setScreenshotImageData(
+              data,
+              for: languageCode,
+              category: category
+            )
           }
         } catch {
           imageLoadError = error.localizedDescription
@@ -979,12 +1136,17 @@ struct PropertiesPanelView: View {
     }
   }
 
-  private func handleScreenshotDrop(providers: [NSItemProvider], screen: Binding<Screen>) -> Bool {
+  private func handleScreenshotDrop(
+    providers: [NSItemProvider],
+    screen: Binding<Screen>
+  ) -> Bool {
     guard let provider = providers.first else { return false }
 
     // Try loading as file URL first (macOS, Files app)
     if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-      provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
+      provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) {
+        data,
+        _ in
         guard let data = data as? Data,
           let url = URL(dataRepresentation: data, relativeTo: nil)
         else { return }
@@ -998,7 +1160,10 @@ struct PropertiesPanelView: View {
               if let category = state.selectedDevice?.category {
                 let languageCode = state.selectedLanguage?.code ?? "en"
                 screen.wrappedValue.setScreenshotImageData(
-                  imageData, for: languageCode, category: category)
+                  imageData,
+                  for: languageCode,
+                  category: category
+                )
               }
             } catch {
               imageLoadError = error.localizedDescription
@@ -1012,7 +1177,9 @@ struct PropertiesPanelView: View {
 
     // Fallback: load as image data directly (iPad Photos app drag)
     if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-      provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, error in
+      provider.loadDataRepresentation(
+        forTypeIdentifier: UTType.image.identifier
+      ) { data, error in
         DispatchQueue.main.async {
           guard let data = data else {
             if let error = error {
@@ -1026,7 +1193,10 @@ struct PropertiesPanelView: View {
             if let category = state.selectedDevice?.category {
               let languageCode = state.selectedLanguage?.code ?? "en"
               screen.wrappedValue.setScreenshotImageData(
-                imageData, for: languageCode, category: category)
+                imageData,
+                for: languageCode,
+                category: category
+              )
             }
           } catch {
             imageLoadError = error.localizedDescription
@@ -1051,18 +1221,27 @@ struct PropertiesPanelView: View {
       guard let category = state.selectedDevice?.category else { return }
       let languageCode = state.selectedLanguage?.code ?? "en"
       screen.wrappedValue.setScreenshotVideo(
-        bookmarkData: bookmarkData, posterTime: 0,
-        for: languageCode, category: category)
+        bookmarkData: bookmarkData,
+        posterTime: 0,
+        for: languageCode,
+        category: category
+      )
       videoDuration = duration
       videoPosterTime = 0
       videoThumbnail = nil
       // Resolve the bookmark we just saved and generate thumbnail (security scope managed inside Task)
       let savedBookmark = bookmarkData
       Task {
-        guard let resolvedURL = VideoLoader.resolveBookmark(savedBookmark) else { return }
+        guard let resolvedURL = VideoLoader.resolveBookmark(savedBookmark)
+        else { return }
         let taskAccessing = resolvedURL.startAccessingSecurityScopedResource()
-        defer { if taskAccessing { resolvedURL.stopAccessingSecurityScopedResource() } }
-        if let thumbData = await VideoLoader.generateThumbnail(url: resolvedURL, at: 0) {
+        defer {
+          if taskAccessing { resolvedURL.stopAccessingSecurityScopedResource() }
+        }
+        if let thumbData = await VideoLoader.generateThumbnail(
+          url: resolvedURL,
+          at: 0
+        ) {
           videoThumbnail = PlatformImage(data: thumbData)
         }
       }
@@ -1077,7 +1256,10 @@ struct PropertiesPanelView: View {
     let languageCode = state.selectedLanguage?.code ?? "en"
     guard let category = state.selectedDevice?.category,
       screen.hasVideo(for: languageCode, category: category),
-      let bookmarkData = screen.screenshotVideoBookmarkData(for: languageCode, category: category),
+      let bookmarkData = screen.screenshotVideoBookmarkData(
+        for: languageCode,
+        category: category
+      ),
       let url = VideoLoader.resolveBookmark(bookmarkData)
     else {
       videoThumbnail = nil
@@ -1085,14 +1267,20 @@ struct PropertiesPanelView: View {
       videoPosterTime = 0
       return
     }
-    videoPosterTime = screen.videoPosterTime(for: languageCode, category: category)
+    videoPosterTime = screen.videoPosterTime(
+      for: languageCode,
+      category: category
+    )
     let accessing = url.startAccessingSecurityScopedResource()
     videoDuration = VideoLoader.duration(of: url)
     if accessing { url.stopAccessingSecurityScopedResource() }
     Task {
       let accessing2 = url.startAccessingSecurityScopedResource()
       defer { if accessing2 { url.stopAccessingSecurityScopedResource() } }
-      if let thumbData = await VideoLoader.generateThumbnail(url: url, at: videoPosterTime) {
+      if let thumbData = await VideoLoader.generateThumbnail(
+        url: url,
+        at: videoPosterTime
+      ) {
         videoThumbnail = PlatformImage(data: thumbData)
       }
     }
@@ -1164,7 +1352,8 @@ private struct LayoutPresetButton: View {
             RoundedRectangle(cornerRadius: 6)
               .strokeBorder(
                 isSelected ? Color.accentColor : Color.platformSeparator,
-                lineWidth: isSelected ? 2 : 1)
+                lineWidth: isSelected ? 2 : 1
+              )
           )
 
         Text(preset.displayName)
@@ -1180,34 +1369,50 @@ private struct LayoutPresetButton: View {
     VStack(spacing: 3) {
       switch preset {
       case .textTop:
-        RoundedRectangle(cornerRadius: 2).fill(isSelected ? Color.accentColor : .secondary).frame(
-          height: 6)
-        RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(maxHeight: .infinity)
+        RoundedRectangle(cornerRadius: 2).fill(
+          isSelected ? Color.accentColor : .secondary
+        ).frame(
+          height: 6
+        )
+        RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(
+          maxHeight: .infinity
+        )
 
       case .textOverlay:
         ZStack {
           RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator)
           RoundedRectangle(cornerRadius: 2).fill(
-            isSelected ? Color.accentColor.opacity(0.6) : .secondary.opacity(0.5)
+            isSelected
+              ? Color.accentColor.opacity(0.6) : .secondary.opacity(0.5)
           ).frame(width: 28, height: 6)
         }
 
       case .textBottom:
-        RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(maxHeight: .infinity)
-        RoundedRectangle(cornerRadius: 2).fill(isSelected ? Color.accentColor : .secondary).frame(
-          height: 6)
+        RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(
+          maxHeight: .infinity
+        )
+        RoundedRectangle(cornerRadius: 2).fill(
+          isSelected ? Color.accentColor : .secondary
+        ).frame(
+          height: 6
+        )
 
       case .textOnly:
         Spacer()
-        RoundedRectangle(cornerRadius: 2).fill(isSelected ? Color.accentColor : .secondary).frame(
-          height: 6)
+        RoundedRectangle(cornerRadius: 2).fill(
+          isSelected ? Color.accentColor : .secondary
+        ).frame(
+          height: 6
+        )
         RoundedRectangle(cornerRadius: 2).fill(
           isSelected ? Color.accentColor.opacity(0.5) : .secondary.opacity(0.5)
         ).frame(width: 28, height: 4)
         Spacer()
 
       case .screenshotOnly:
-        RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(maxHeight: .infinity)
+        RoundedRectangle(cornerRadius: 2).fill(Color.platformSeparator).frame(
+          maxHeight: .infinity
+        )
       }
     }
     .padding(6)

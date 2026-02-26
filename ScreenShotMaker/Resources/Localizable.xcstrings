@@ -714,23 +714,6 @@
         }
       }
     },
-    "Drop image or click below" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drop image or click below"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "画像をドロップまたは下をクリック"
-          }
-        }
-      }
-    },
     "Drop image or video, or click below" : {
       "localizations" : {
         "en" : {
@@ -743,23 +726,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "画像または動画をドロップ、またはクリック"
-          }
-        }
-      }
-    },
-    "Drop screenshot" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drop screenshot"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スクリーンショットをドロップ"
           }
         }
       }
@@ -1804,35 +1770,18 @@
         }
       }
     },
-    "PNG or JPEG, max 20MB" : {
-      "extractionState" : "stale",
+    "PNG, JPEG, MP4, MOV, M4V supported\nVideos: 15–30 seconds recommended" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PNG or JPEG, max 20MB"
+            "value" : "PNG, JPEG, MP4, MOV, M4V supported\nVideos: 15–30 seconds recommended"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PNG または JPEG（最大 20MB）"
-          }
-        }
-      }
-    },
-    "PNG, JPEG, MP4, MOV, M4V supported" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PNG, JPEG, MP4, MOV, M4V supported"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PNG、JPEG、MP4、MOV、M4V に対応"
+            "value" : "PNG、JPEG、MP4、MOV、M4V に対応\n動画: 15〜30秒"
           }
         }
       }
@@ -2121,23 +2070,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スクリーンショットフォーカス"
-          }
-        }
-      }
-    },
-    "Screenshot Image" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Screenshot Image"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スクリーンショット画像"
           }
         }
       }
