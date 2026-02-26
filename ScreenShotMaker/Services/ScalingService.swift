@@ -53,16 +53,31 @@ enum ScalingService {
     else {
       return (boxWidth, boxHeight)
     }
+    return frameFittingSize(nativeSize: imageSize, boxWidth: boxWidth, boxHeight: boxHeight, fitToImage: true)
+  }
 
-    let imageAspect = imageSize.width / imageSize.height
+  /// Same as `frameFittingSize(imageData:...)` but accepts a pre-computed native size directly.
+  /// Useful when the content is a video (no image data available).
+  static func frameFittingSize(
+    nativeSize: CGSize?,
+    boxWidth: CGFloat,
+    boxHeight: CGFloat,
+    fitToImage: Bool
+  ) -> (width: CGFloat, height: CGFloat) {
+    guard fitToImage,
+          let nativeSize,
+          nativeSize.width > 0, nativeSize.height > 0
+    else {
+      return (boxWidth, boxHeight)
+    }
+
+    let aspect    = nativeSize.width / nativeSize.height
     let boxAspect = boxWidth / boxHeight
 
-    if imageAspect > boxAspect {
-      // Image is wider than box → constrain by width
-      return (boxWidth, boxWidth / imageAspect)
+    if aspect > boxAspect {
+      return (boxWidth, boxWidth / aspect)
     } else {
-      // Image is taller than box → constrain by height
-      return (boxHeight * imageAspect, boxHeight)
+      return (boxHeight * aspect, boxHeight)
     }
   }
 }

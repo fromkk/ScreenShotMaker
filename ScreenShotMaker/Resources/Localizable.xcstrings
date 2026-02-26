@@ -715,6 +715,7 @@
       }
     },
     "Drop image or click below" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -730,7 +731,11 @@
         }
       }
     },
+    "Drop image or video, or click below" : {
+
+    },
     "Drop screenshot" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -745,6 +750,9 @@
           }
         }
       }
+    },
+    "Drop screenshot or video" : {
+
     },
     "Duplicate" : {
       "localizations" : {
@@ -1729,6 +1737,7 @@
       }
     },
     "PNG or JPEG, max 20MB" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1743,6 +1752,9 @@
           }
         }
       }
+    },
+    "PNG, JPEG, MP4, MOV, M4V supported" : {
+
     },
     "Portrait" : {
       "localizations" : {
@@ -1775,6 +1787,9 @@
           }
         }
       }
+    },
+    "Poster Frame" : {
+
     },
     "Professional" : {
       "localizations" : {
@@ -1984,6 +1999,9 @@
         }
       }
     },
+    "Screenshot / Video" : {
+
+    },
     "Screenshot Focus" : {
       "localizations" : {
         "en" : {
@@ -2001,6 +2019,7 @@
       }
     },
     "Screenshot Image" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
