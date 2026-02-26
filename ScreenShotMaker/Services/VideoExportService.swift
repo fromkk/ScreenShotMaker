@@ -49,6 +49,7 @@ enum VideoExportService {
     device: DeviceSize,
     languageCode: String,
     outputURL: URL,
+    isCancelled: (@Sendable () -> Bool)? = nil,
     onFrameProgress: (@Sendable (Int, Int) -> Void)? = nil
   ) async throws {
     guard let bookmarkData = screen.screenshotVideoBookmarkData(
@@ -68,6 +69,7 @@ enum VideoExportService {
       device: device,
       languageCode: languageCode,
       outputURL: outputURL,
+      isCancelled: isCancelled,
       onFrameProgress: onFrameProgress
     )
   }
@@ -104,6 +106,7 @@ enum VideoExportService {
             progressState.resetFrameProgress()
           try await exportVideoScreen(
               screen, device: device, languageCode: language.code, outputURL: outputURL,
+              isCancelled: { progressState.isCancelled },
               onFrameProgress: { done, total in
                 DispatchQueue.main.async {
                   progressState.currentFrameCompleted = done
@@ -132,6 +135,7 @@ enum VideoExportService {
     device: DeviceSize,
     languageCode: String,
     outputURL: URL,
+    isCancelled: (@Sendable () -> Bool)? = nil,
     onFrameProgress: (@Sendable (Int, Int) -> Void)? = nil
   ) async throws {
     let exportWidth = Int(device.effectiveWidth(isLandscape: screen.isLandscape))
@@ -166,6 +170,7 @@ enum VideoExportService {
     let overlay = overlayImageData
 
     let frameProgress = onFrameProgress
+    let cancelCheck = isCancelled
     try await Task.detached(priority: .userInitiated) {
       try await Self.runExportPipeline(
         videoURL: url,
@@ -176,6 +181,7 @@ enum VideoExportService {
         exportWidth: w,
         exportHeight: h,
         outputURL: outURL,
+        isCancelled: cancelCheck,
         onFrameProgress: frameProgress
       )
     }.value
@@ -192,6 +198,7 @@ enum VideoExportService {
     exportWidth: Int,
     exportHeight: Int,
     outputURL: URL,
+    isCancelled: (@Sendable () -> Bool)? = nil,
     onFrameProgress: (@Sendable (Int, Int) -> Void)? = nil
   ) async throws {
     let asset = AVURLAsset(url: videoURL)
@@ -345,12 +352,14 @@ enum VideoExportService {
 
     // Wrap non-Sendable AVFoundation objects so they can be captured in @Sendable closures.
     // All accesses occur on serial DispatchQueues, so no synchronisation is needed.
-    let writerRef    = Ref(writer)
-    let videoInRef   = Ref(writerVideoInput)
-    let videoOutRef  = Ref(videoOutput)
-    let adaptorRef   = Ref(adaptor)
-    let ciContextRef = Ref(ciContext)
-    let frameRef     = Ref(0)
+    let writerRef      = Ref(writer)
+    let videoInRef     = Ref(writerVideoInput)
+    let videoOutRef    = Ref(videoOutput)
+    let adaptorRef     = Ref(adaptor)
+    let ciContextRef   = Ref(ciContext)
+    let frameRef       = Ref(0)
+    let wasCancelledRef = Ref(false)
+    let readerRef       = Ref(reader)
 
     // Audio: pump samples on audioQueue
     if let awi = writerAudioInput, let aro = audioReaderOutput {
@@ -383,6 +392,11 @@ enum VideoExportService {
         var exhausted = false
         while !exhausted && videoInRef.value.isReadyForMoreMediaData {
           autoreleasepool {
+            // Check for cancellation before each frame
+            if isCancelled?() == true {
+              wasCancelledRef.value = true
+              readerRef.value.cancelReading()  // causes copyNextSampleBuffer → nil
+            }
             guard let sampleBuffer = videoOutRef.value.copyNextSampleBuffer() else {
               exhausted = true
               return
@@ -421,14 +435,20 @@ enum VideoExportService {
           ciContextRef.value.clearCaches()   // final flush
           finishGroup.leave()
           finishGroup.notify(queue: .global()) {
-            writerRef.value.finishWriting {
-              if writerRef.value.status == .failed {
-                let errMsg = writerRef.value.error?.localizedDescription ?? "unknown"
-                logger.error("writer.finishWriting failed: \(errMsg, privacy: .public)")
-                cont.resume(throwing: VideoExportError.exportFailed(errMsg))
-              } else {
-                logger.info("Export pipeline completed successfully")
-                cont.resume()
+            if wasCancelledRef.value {
+              writerRef.value.cancelWriting()
+              logger.info("Export pipeline cancelled by user")
+              cont.resume(throwing: CancellationError())
+            } else {
+              writerRef.value.finishWriting {
+                if writerRef.value.status == .failed {
+                  let errMsg = writerRef.value.error?.localizedDescription ?? "unknown"
+                  logger.error("writer.finishWriting failed: \(errMsg, privacy: .public)")
+                  cont.resume(throwing: VideoExportError.exportFailed(errMsg))
+                } else {
+                  logger.info("Export pipeline completed successfully")
+                  cont.resume()
+                }
               }
             }
           }

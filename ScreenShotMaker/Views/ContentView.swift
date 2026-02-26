@@ -449,6 +449,7 @@ private struct ExportButton: View {
           do {
             try await VideoExportService.exportVideoScreen(
               screen, device: device, languageCode: languageCode, outputURL: tempURL,
+              isCancelled: { videoProgressState.isCancelled },
               onFrameProgress: { done, total in
                 DispatchQueue.main.async {
                   videoProgressState.currentFrameCompleted = done
@@ -461,6 +462,9 @@ private struct ExportButton: View {
             videoProgressState.isExporting = false
             showVideoProgress = false
             showSaveSuccess = true
+          } catch is CancellationError {
+            videoProgressState.isExporting = false
+            showVideoProgress = false
           } catch {
             videoProgressState.isExporting = false
             showVideoProgress = false
@@ -502,6 +506,7 @@ private struct ExportButton: View {
         do {
           try await VideoExportService.exportVideoScreen(
             screen, device: device, languageCode: languageCode, outputURL: tempURL,
+            isCancelled: { videoProgressState.isCancelled },
             onFrameProgress: { done, total in
               DispatchQueue.main.async {
                 videoProgressState.currentFrameCompleted = done
@@ -516,6 +521,9 @@ private struct ExportButton: View {
           exportContentType = .mpeg4Movie
           showVideoProgress = false
           showExportFile = true
+        } catch is CancellationError {
+          videoProgressState.isExporting = false
+          showVideoProgress = false
         } catch {
           videoProgressState.isExporting = false
           showVideoProgress = false
