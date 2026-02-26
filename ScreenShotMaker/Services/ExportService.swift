@@ -288,6 +288,13 @@ enum ExportService {
                   progressState.currentFrameTotal = total
                 }
               })
+            // Also export poster frame as a static image alongside the video
+            if let posterData = await VideoExportService.exportPosterFrame(
+              screen: screen, device: device, languageCode: language.code, format: format)
+            {
+              let posterURL = deviceDir.appendingPathComponent("\(screen.name)_poster.\(format.fileExtension)")
+              try? posterData.write(to: posterURL, options: .atomic)
+            }
           } catch {
             progressState.errors.append(
               "Video export failed: \(screen.name) / \(device.name) – \(error.localizedDescription)"

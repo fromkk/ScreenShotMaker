@@ -62,6 +62,34 @@ enum VideoExportService {
     )
   }
 
+  /// Renders the screen overlay with the video's poster frame as a static image.
+  /// Returns PNG/JPEG data (matching `format`) or nil on failure.
+  @MainActor
+  static func exportPosterFrame(
+    screen: Screen,
+    device: DeviceSize,
+    languageCode: String,
+    format: ExportFormat = .png
+  ) async -> Data? {
+    guard let bookmarkData = screen.screenshotVideoBookmarkData(
+      for: languageCode, category: device.category),
+      let videoURL = VideoLoader.resolveBookmark(bookmarkData)
+    else { return nil }
+
+    let posterTime = screen.videoPosterTime(for: languageCode, category: device.category)
+    let accessing = videoURL.startAccessingSecurityScopedResource()
+    defer { if accessing { videoURL.stopAccessingSecurityScopedResource() } }
+
+    guard let thumbData = await VideoLoader.generateThumbnail(url: videoURL, at: posterTime)
+    else { return nil }
+
+    // Build a temporary Screen with the poster frame image substituted in
+    var tempScreen = screen
+    tempScreen.setScreenshotImageData(thumbData, for: languageCode, category: device.category)
+    return ExportService.exportScreen(
+      tempScreen, device: device, format: format, languageCode: languageCode)
+  }
+
   // MARK: - Batch export
 
   static func batchVideoExport(
