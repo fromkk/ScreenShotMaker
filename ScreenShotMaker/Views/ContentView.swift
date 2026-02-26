@@ -340,7 +340,6 @@ private struct ExportButton: View {
   @State private var exportDocument: ExportedImageDocument?
   @State private var exportFilename: String = "screen.png"
   @State private var exportContentType: UTType = .png
-  @State private var showVideoFolderPicker = false
   @State private var showVideoProgress = false
   @State private var videoProgressState = ExportProgressState()
   #if os(iOS)
@@ -385,19 +384,6 @@ private struct ExportButton: View {
           showExportError = true
         }
       }
-      .fileImporter(
-        isPresented: $showVideoFolderPicker,
-        allowedContentTypes: [.folder],
-        allowsMultipleSelection: false
-      ) { result in
-        switch result {
-        case .success(let urls):
-          if let url = urls.first { exportVideoToFolder(url) }
-        case .failure(let error):
-          exportError = error.localizedDescription
-          showExportError = true
-        }
-      }
       .sheet(isPresented: $showVideoProgress) {
         ExportProgressView(
           progressState: videoProgressState,
@@ -427,19 +413,6 @@ private struct ExportButton: View {
         defaultFilename: exportFilename
       ) { result in
         if case .failure(let error) = result {
-          exportError = error.localizedDescription
-          showExportError = true
-        }
-      }
-      .fileImporter(
-        isPresented: $showVideoFolderPicker,
-        allowedContentTypes: [.folder],
-        allowsMultipleSelection: false
-      ) { result in
-        switch result {
-        case .success(let urls):
-          if let url = urls.first { exportVideoToFolder(url) }
-        case .failure(let error):
           exportError = error.localizedDescription
           showExportError = true
         }
@@ -485,12 +458,6 @@ private struct ExportButton: View {
             videoProgressState.completed = 1
             try await PhotoLibraryService.requestAuthorization()
             try await PhotoLibraryService.saveVideo(at: tempURL)
-            // Also save poster frame to Photos
-            if let posterData = await VideoExportService.exportPosterFrame(
-              screen: screen, device: device, languageCode: languageCode)
-            {
-              try? await PhotoLibraryService.saveImage(posterData)
-            }
             videoProgressState.isExporting = false
             showVideoProgress = false
             showSaveSuccess = true
@@ -524,55 +491,44 @@ private struct ExportButton: View {
     let languageCode = state.selectedLanguage?.code ?? "en"
 
     if screen.hasVideo(for: languageCode, category: device.category) {
-      showVideoFolderPicker = true
+      let tempURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent(screen.name + ".mp4")
+      videoProgressState.reset()
+      videoProgressState.total = 1
+      videoProgressState.isExporting = true
+      videoProgressState.currentItem = screen.name
+      showVideoProgress = true
+      Task {
+        do {
+          try await VideoExportService.exportVideoScreen(
+            screen, device: device, languageCode: languageCode, outputURL: tempURL,
+            onFrameProgress: { done, total in
+              DispatchQueue.main.async {
+                videoProgressState.currentFrameCompleted = done
+                videoProgressState.currentFrameTotal = total
+              }
+            })
+          videoProgressState.completed = 1
+          videoProgressState.isExporting = false
+          let data = try Data(contentsOf: tempURL)
+          exportDocument = ExportedImageDocument(data: data)
+          exportFilename = screen.name + ".mp4"
+          exportContentType = .mpeg4Movie
+          showVideoProgress = false
+          showExportFile = true
+        } catch {
+          videoProgressState.isExporting = false
+          showVideoProgress = false
+          exportError = error.localizedDescription
+          showExportError = true
+        }
+      }
     } else {
       guard let data = renderCurrentScreen() else { return }
       exportDocument = ExportedImageDocument(data: data)
       exportFilename = screen.name + ".png"
       exportContentType = .png
       showExportFile = true
-    }
-  }
-
-  private func exportVideoToFolder(_ folderURL: URL) {
-    guard let screen = state.selectedScreen,
-      let device = state.selectedDevice
-    else { return }
-    let languageCode = state.selectedLanguage?.code ?? "en"
-    let accessing = folderURL.startAccessingSecurityScopedResource()
-    videoProgressState.reset()
-    videoProgressState.total = 1
-    videoProgressState.isExporting = true
-    videoProgressState.currentItem = screen.name
-    showVideoProgress = true
-    Task {
-      defer { if accessing { folderURL.stopAccessingSecurityScopedResource() } }
-      do {
-        let videoOutURL = folderURL.appendingPathComponent("\(screen.name).mp4")
-        try await VideoExportService.exportVideoScreen(
-          screen, device: device, languageCode: languageCode, outputURL: videoOutURL,
-          onFrameProgress: { done, total in
-            DispatchQueue.main.async {
-              videoProgressState.currentFrameCompleted = done
-              videoProgressState.currentFrameTotal = total
-            }
-          })
-        videoProgressState.resetFrameProgress()
-        if let posterData = await VideoExportService.exportPosterFrame(
-          screen: screen, device: device, languageCode: languageCode)
-        {
-          let posterURL = folderURL.appendingPathComponent("\(screen.name)_poster.png")
-          try posterData.write(to: posterURL, options: .atomic)
-        }
-        videoProgressState.completed = 1
-        videoProgressState.isExporting = false
-        showVideoProgress = false
-      } catch {
-        videoProgressState.isExporting = false
-        showVideoProgress = false
-        exportError = error.localizedDescription
-        showExportError = true
-      }
     }
   }
 

@@ -13,6 +13,7 @@ enum VideoLoadError: LocalizedError {
   case fileTooLarge(size: Int)
   case fileNotFound
   case bookmarkFailed
+  case durationOutOfRange(seconds: Double)
 
   var errorDescription: String? {
     switch self {
@@ -25,6 +26,8 @@ enum VideoLoadError: LocalizedError {
       return "File not found."
     case .bookmarkFailed:
       return "Failed to create a file bookmark for the video."
+    case .durationOutOfRange(let seconds):
+      return String(format: "Video duration must be between 15 and 30 seconds (this video is %.1f seconds).", seconds)
     }
   }
 }
@@ -59,6 +62,11 @@ enum VideoLoader {
       options: [AVURLAssetPreferPreciseDurationAndTimingKey: false]
     )
     let duration = CMTimeGetSeconds(asset.duration)
+
+    // Validate duration: App Preview must be 15–30 seconds.
+    if duration < 15.0 || duration > 30.0 {
+      throw VideoLoadError.durationOutOfRange(seconds: duration)
+    }
 
     // Create a security-scoped bookmark so the app can re-open the file later.
     do {

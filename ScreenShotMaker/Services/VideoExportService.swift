@@ -3,7 +3,17 @@
 @preconcurrency import AVFoundation
 import CoreImage
 import Foundation
+import OSLog
 import SwiftUI
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ScreenShotMaker", category: "VideoExport")
+
+/// A trivially @unchecked Sendable box for non-Sendable values that are only
+/// accessed on known-serial queues (DispatchQueue callbacks, etc.).
+private final class Ref<T>: @unchecked Sendable {
+  var value: T
+  init(_ value: T) { self.value = value }
+}
 
 enum VideoExportError: LocalizedError {
   case videoURLUnavailable
@@ -60,34 +70,6 @@ enum VideoExportService {
       outputURL: outputURL,
       onFrameProgress: onFrameProgress
     )
-  }
-
-  /// Renders the screen overlay with the video's poster frame as a static image.
-  /// Returns PNG/JPEG data (matching `format`) or nil on failure.
-  @MainActor
-  static func exportPosterFrame(
-    screen: Screen,
-    device: DeviceSize,
-    languageCode: String,
-    format: ExportFormat = .png
-  ) async -> Data? {
-    guard let bookmarkData = screen.screenshotVideoBookmarkData(
-      for: languageCode, category: device.category),
-      let videoURL = VideoLoader.resolveBookmark(bookmarkData)
-    else { return nil }
-
-    let posterTime = screen.videoPosterTime(for: languageCode, category: device.category)
-    let accessing = videoURL.startAccessingSecurityScopedResource()
-    defer { if accessing { videoURL.stopAccessingSecurityScopedResource() } }
-
-    guard let thumbData = await VideoLoader.generateThumbnail(url: videoURL, at: posterTime)
-    else { return nil }
-
-    // Build a temporary Screen with the poster frame image substituted in
-    var tempScreen = screen
-    tempScreen.setScreenshotImageData(thumbData, for: languageCode, category: device.category)
-    return ExportService.exportScreen(
-      tempScreen, device: device, format: format, languageCode: languageCode)
   }
 
   // MARK: - Batch export
@@ -213,12 +195,14 @@ enum VideoExportService {
     onFrameProgress: (@Sendable (Int, Int) -> Void)? = nil
   ) async throws {
     let asset = AVURLAsset(url: videoURL)
+    logger.info("Pipeline start: \(videoURL.lastPathComponent, privacy: .public) → \(outputURL.lastPathComponent, privacy: .public) size=\(exportWidth)x\(exportHeight)")
 
     let videoTrack: AVAssetTrack
     let audioTracks: [AVAssetTrack]
     let preferredTransform: CGAffineTransform
     if #available(iOS 16, macOS 13, *) {
       guard let vt = try await asset.loadTracks(withMediaType: .video).first else {
+        logger.error("No video track found (iOS16+ path)")
         throw VideoExportError.noVideoTrack
       }
       videoTrack       = vt
@@ -226,6 +210,7 @@ enum VideoExportService {
       preferredTransform = (try? await vt.load(.preferredTransform)) ?? .identity
     } else {
       guard let vt = asset.tracks(withMediaType: .video).first else {
+        logger.error("No video track found (legacy path)")
         throw VideoExportError.noVideoTrack
       }
       videoTrack         = vt
@@ -249,6 +234,7 @@ enum VideoExportService {
 
     // ── AVAssetWriter ────────────────────────────────────────────────────
     guard let writer = try? AVAssetWriter(url: outputURL, fileType: .mp4) else {
+      logger.error("AVAssetWriter init failed for \(outputURL.path, privacy: .public)")
       throw VideoExportError.writerSetupFailed
     }
     let videoSettings: [String: Any] = [
@@ -266,13 +252,22 @@ enum VideoExportService {
         kCVPixelBufferHeightKey as String: exportHeight,
       ]
     )
-    guard writer.canAdd(writerVideoInput) else { throw VideoExportError.writerSetupFailed }
+    guard writer.canAdd(writerVideoInput) else {
+      logger.error("writer.canAdd(videoInput) returned false")
+      throw VideoExportError.writerSetupFailed
+    }
     writer.add(writerVideoInput)
 
-    // Audio passthrough (nil outputSettings = copy encoded bytes unchanged)
+    // Audio: decode → re-encode to AAC (works regardless of source format)
     var writerAudioInput: AVAssetWriterInput?
     if audioTracks.first != nil {
-      let ai = AVAssetWriterInput(mediaType: .audio, outputSettings: nil)
+      let audioSettings: [String: Any] = [
+        AVFormatIDKey: kAudioFormatMPEG4AAC,
+        AVSampleRateKey: 44100,
+        AVNumberOfChannelsKey: 2,
+        AVEncoderBitRateKey: 128_000,
+      ]
+      let ai = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
       ai.expectsMediaDataInRealTime = false
       if writer.canAdd(ai) {
         writer.add(ai)
@@ -282,6 +277,7 @@ enum VideoExportService {
 
     // ── AVAssetReader ────────────────────────────────────────────────────
     guard let reader = try? AVAssetReader(asset: asset) else {
+      logger.error("AVAssetReader init failed")
       throw VideoExportError.writerSetupFailed
     }
     let videoOutput = AVAssetReaderTrackOutput(
@@ -289,12 +285,26 @@ enum VideoExportService {
       outputSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
     )
     videoOutput.alwaysCopiesSampleData = false
-    guard reader.canAdd(videoOutput) else { throw VideoExportError.writerSetupFailed }
+    guard reader.canAdd(videoOutput) else {
+      logger.error("reader.canAdd(videoOutput) returned false")
+      throw VideoExportError.writerSetupFailed
+    }
     reader.add(videoOutput)
 
     var audioReaderOutput: AVAssetReaderTrackOutput?
     if let srcAudio = audioTracks.first, writerAudioInput != nil {
-      let ao = AVAssetReaderTrackOutput(track: srcAudio, outputSettings: nil)
+      // Decode to Linear PCM so the AAC encoder on the writer side can accept any source format
+      let decompressSettings: [String: Any] = [
+        AVFormatIDKey: kAudioFormatLinearPCM,
+        AVSampleRateKey: 44100,
+        AVNumberOfChannelsKey: 2,
+        AVLinearPCMBitDepthKey: 16,
+        AVLinearPCMIsNonInterleaved: false,
+        AVLinearPCMIsFloatKey: false,
+        AVLinearPCMIsBigEndianKey: false,
+      ]
+      let ao = AVAssetReaderTrackOutput(track: srcAudio, outputSettings: decompressSettings)
+      ao.alwaysCopiesSampleData = false
       if reader.canAdd(ao) {
         reader.add(ao)
         audioReaderOutput = ao
@@ -313,27 +323,51 @@ enum VideoExportService {
       assetDuration = CMTimeGetSeconds(asset.duration)
     }
     let totalFrames = max(1, Int((Double(nominalFPS) * assetDuration).rounded()))
+    logger.info("Video: fps=\(nominalFPS) duration=\(assetDuration)s totalFrames=\(totalFrames) audioTracks=\(audioTracks.count)")
 
     guard reader.startReading() else {
-      throw VideoExportError.exportFailed(
-        reader.error?.localizedDescription ?? "AVAssetReader failed to start")
+      let errMsg = reader.error?.localizedDescription ?? "AVAssetReader failed to start"
+      logger.error("reader.startReading() failed: \(errMsg, privacy: .public)")
+      throw VideoExportError.exportFailed(errMsg)
     }
     writer.startWriting()
     writer.startSession(atSourceTime: .zero)
 
+    // CIContext is created once and reused for all frames.
+    // We flush its internal caches every N frames via clearCaches().
     let ciContext  = CIContext(options: [.useSoftwareRenderer: false])
     let videoQueue = DispatchQueue(label: "com.shotcraft.export.video")
     let audioQueue = DispatchQueue(label: "com.shotcraft.export.audio")
 
-    // Audio: pump samples on audioQueue (fire-and-forget; finishes independently)
+    // Use a DispatchGroup so finishWriting is called only after BOTH
+    // video and audio inputs have been marked as finished.
+    let finishGroup = DispatchGroup()
+
+    // Wrap non-Sendable AVFoundation objects so they can be captured in @Sendable closures.
+    // All accesses occur on serial DispatchQueues, so no synchronisation is needed.
+    let writerRef    = Ref(writer)
+    let videoInRef   = Ref(writerVideoInput)
+    let videoOutRef  = Ref(videoOutput)
+    let adaptorRef   = Ref(adaptor)
+    let ciContextRef = Ref(ciContext)
+    let frameRef     = Ref(0)
+
+    // Audio: pump samples on audioQueue
     if let awi = writerAudioInput, let aro = audioReaderOutput {
-      awi.requestMediaDataWhenReady(on: audioQueue) {
-        while awi.isReadyForMoreMediaData {
-          if let buf = aro.copyNextSampleBuffer() {
-            awi.append(buf)
-          } else {
-            awi.markAsFinished()
-            return
+      let awiRef = Ref(awi)
+      let aroRef = Ref(aro)
+      finishGroup.enter()
+      awiRef.value.requestMediaDataWhenReady(on: audioQueue) {
+        var audioExhausted = false
+        while !audioExhausted && awiRef.value.isReadyForMoreMediaData {
+          autoreleasepool {
+            if let buf = aroRef.value.copyNextSampleBuffer() {
+              awiRef.value.append(buf)
+            } else {
+              awiRef.value.markAsFinished()
+              finishGroup.leave()
+              audioExhausted = true
+            }
           }
         }
       }
@@ -341,13 +375,21 @@ enum VideoExportService {
 
     // Video: suspend (not block) until all frames are composited and written
     try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-      var frameCount = 0
-      writerVideoInput.requestMediaDataWhenReady(on: videoQueue) {
-        while writerVideoInput.isReadyForMoreMediaData {
-          if let sampleBuffer = videoOutput.copyNextSampleBuffer() {
-            guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { continue }
+      finishGroup.enter()
+      videoInRef.value.requestMediaDataWhenReady(on: videoQueue) {
+        // Process frames one at a time inside autoreleasepool so that
+        // CIImage / CGImage allocations created during compositing are
+        // released promptly instead of accumulating across all frames.
+        var exhausted = false
+        while !exhausted && videoInRef.value.isReadyForMoreMediaData {
+          autoreleasepool {
+            guard let sampleBuffer = videoOutRef.value.copyNextSampleBuffer() else {
+              exhausted = true
+              return
+            }
+            guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
             let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-            if let composited = Self.composite(
+            if let composited = VideoExportService.composite(
               videoFrame: pixelBuffer,
               overlayImage: overlayImage,
               screenshotRect: screenshotRect,
@@ -355,25 +397,40 @@ enum VideoExportService {
               contentMode: contentMode,
               preferredTransform: preferredTransform,
               exportSize: exportSize,
-              ciContext: ciContext
+              ciContext: ciContextRef.value,
+              pixelBufferPool: adaptorRef.value.pixelBufferPool
             ) {
-              adaptor.append(composited, withPresentationTime: pts)
+              adaptorRef.value.append(composited, withPresentationTime: pts)
             }
-            frameCount += 1
-            onFrameProgress?(frameCount, totalFrames)
-            // If composite() returned nil, skip the frame (don't write a wrong-sized buffer)
-          } else {
-            // No more frames
-            writerVideoInput.markAsFinished()
-            writer.finishWriting {
-              if writer.status == .failed {
-                cont.resume(throwing: VideoExportError.exportFailed(
-                  writer.error?.localizedDescription))
+            frameRef.value += 1
+            onFrameProgress?(frameRef.value, totalFrames)
+
+            // Periodically flush CIContext's internal GPU/CPU caches to
+            // prevent them growing without bound over a long export.
+            if frameRef.value % 30 == 0 {
+              ciContextRef.value.clearCaches()
+            }
+          }
+        }
+
+        if exhausted {
+          // No more video frames — mark video done, then wait for audio to drain
+          videoInRef.value.markAsFinished()
+          let doneFrames = frameRef.value
+          logger.info("Video frames done: \(doneFrames)/\(totalFrames). Waiting for audio to drain...")
+          ciContextRef.value.clearCaches()   // final flush
+          finishGroup.leave()
+          finishGroup.notify(queue: .global()) {
+            writerRef.value.finishWriting {
+              if writerRef.value.status == .failed {
+                let errMsg = writerRef.value.error?.localizedDescription ?? "unknown"
+                logger.error("writer.finishWriting failed: \(errMsg, privacy: .public)")
+                cont.resume(throwing: VideoExportError.exportFailed(errMsg))
               } else {
+                logger.info("Export pipeline completed successfully")
                 cont.resume()
               }
             }
-            return
           }
         }
       }
@@ -391,20 +448,28 @@ enum VideoExportService {
     contentMode: ScreenshotContentMode,
     preferredTransform: CGAffineTransform,
     exportSize: CGSize,
-    ciContext: CIContext
+    ciContext: CIContext,
+    pixelBufferPool: CVPixelBufferPool?
   ) -> CVPixelBuffer? {
     let width  = Int(exportSize.width)
     let height = Int(exportSize.height)
 
+    // Reuse buffers from the adaptor's pool to avoid per-frame heap allocations.
     var outputBuffer: CVPixelBuffer?
-    let attrs: CFDictionary = [
-      kCVPixelBufferCGImageCompatibilityKey: true,
-      kCVPixelBufferCGBitmapContextCompatibilityKey: true,
-    ] as CFDictionary
-    guard CVPixelBufferCreate(
-      kCFAllocatorDefault, width, height,
-      kCVPixelFormatType_32BGRA, attrs, &outputBuffer
-    ) == kCVReturnSuccess, let outBuffer = outputBuffer else { return nil }
+    if let pool = pixelBufferPool {
+      guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &outputBuffer)
+              == kCVReturnSuccess else { return nil }
+    } else {
+      let attrs: CFDictionary = [
+        kCVPixelBufferCGImageCompatibilityKey: true,
+        kCVPixelBufferCGBitmapContextCompatibilityKey: true,
+      ] as CFDictionary
+      guard CVPixelBufferCreate(
+        kCFAllocatorDefault, width, height,
+        kCVPixelFormatType_32BGRA, attrs, &outputBuffer
+      ) == kCVReturnSuccess else { return nil }
+    }
+    guard let outBuffer = outputBuffer else { return nil }
 
     CVPixelBufferLockBaseAddress(outBuffer, [])
     defer { CVPixelBufferUnlockBaseAddress(outBuffer, []) }
