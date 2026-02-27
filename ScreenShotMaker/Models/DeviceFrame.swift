@@ -84,19 +84,43 @@ struct DeviceFrameView<Content: View>: View {
   private func framedContent(spec: DeviceFrameSpec) -> some View {
     let bezel = screenWidth * spec.bezelRatio
     let outerWidth = screenWidth + bezel * 2
+    let outerHeight = screenHeight + bezel * 2
     let outerCorner = screenWidth * spec.cornerRadiusRatio
     let innerCorner = max(outerCorner - bezel, 0)
 
     return ZStack {
-      // Outer frame
-      RoundedRectangle(cornerRadius: outerCorner)
-        .fill(spec.frameColor)
-        .frame(width: outerWidth, height: screenHeight + bezel * 2)
+      // Bottom: solid frame color fills the entire outer area (including corners).
+      // This eliminates any transparent gap because there is no inner clipShape—
+      // the donut on top paints over protruding content pixels at the corners.
+      spec.frameColor
 
-      // Screen content
+      // Middle: screen content, intentionally NOT clipped.
+      // Corner areas that extend beyond innerCorner will be covered by the donut below.
       content
         .frame(width: screenWidth, height: screenHeight)
-        .clipShape(RoundedRectangle(cornerRadius: innerCorner))
+
+      // Top: donut covers bezel + bleeds over content corners with solid frame color.
+      // Because content has no clip, there are no anti-aliased transparent pixels
+      // for the background to leak through.
+      Canvas { ctx, size in
+        let outer = Path(
+          roundedRect: CGRect(origin: .zero, size: size),
+          cornerRadius: outerCorner,
+          style: .circular
+        )
+        let inner = Path(
+          roundedRect: CGRect(
+            x: bezel, y: bezel,
+            width: screenWidth, height: screenHeight
+          ),
+          cornerRadius: innerCorner,
+          style: .circular
+        )
+        var donut = outer
+        donut.addPath(inner)
+        ctx.fill(donut, with: .color(spec.frameColor), style: FillStyle(eoFill: true))
+      }
+      .frame(width: outerWidth, height: outerHeight)
 
       // Dynamic Island (iPhone only)
       if spec.hasNotch && config.showDynamicIsland {
@@ -110,7 +134,7 @@ struct DeviceFrameView<Content: View>: View {
             .padding(.top, bezel + screenWidth * 0.015)
           Spacer()
         }
-        .frame(width: outerWidth, height: screenHeight + bezel * 2)
+        .frame(width: outerWidth, height: outerHeight)
       }
 
       // Home indicator
@@ -122,9 +146,12 @@ struct DeviceFrameView<Content: View>: View {
             .frame(width: screenWidth * 0.3, height: screenWidth * 0.005)
             .padding(.bottom, bezel + screenWidth * 0.01)
         }
-        .frame(width: outerWidth, height: screenHeight + bezel * 2)
+        .frame(width: outerWidth, height: outerHeight)
       }
     }
-    .frame(width: outerWidth, height: screenHeight + bezel * 2)
+    .frame(width: outerWidth, height: outerHeight)
+    // Clip the entire composite to the outer rounded rect so content cannot
+    // bleed outside the device frame boundary.
+    .clipShape(RoundedRectangle(cornerRadius: outerCorner, style: .circular))
   }
 }
