@@ -116,8 +116,12 @@ struct PropertiesPanelView: View {
           }
         }
 
-        if state.selectedDevice?.category.supportsRotation ?? true {
-          Picker("Orientation", selection: screen.isLandscape) {
+        if let deviceCategory = state.selectedDevice?.category, deviceCategory.supportsRotation {
+          let orientationBinding = Binding<Bool>(
+            get: { screen.wrappedValue.isLandscape(for: deviceCategory) },
+            set: { screen.wrappedValue.setIsLandscape($0, for: deviceCategory) }
+          )
+          Picker("Orientation", selection: orientationBinding) {
             Label("Portrait", systemImage: "rectangle.portrait").tag(false)
             Label("Landscape", systemImage: "rectangle").tag(true)
           }
@@ -638,6 +642,11 @@ struct PropertiesPanelView: View {
 
   private func deviceFrameSection(screen: Binding<Screen>) -> some View {
     PropertySection(title: "Device Frame") {
+      let category = state.selectedDevice?.category ?? .iPhone
+      let configBinding = Binding<DeviceFrameConfig>(
+        get: { screen.wrappedValue.deviceFrameConfig(for: category) },
+        set: { screen.wrappedValue.setDeviceFrameConfig($0, for: category) }
+      )
       VStack(alignment: .leading, spacing: 10) {
         Toggle("Show Device Frame", isOn: screen.showDeviceFrame)
           .font(.system(size: 12))
@@ -650,18 +659,17 @@ struct PropertiesPanelView: View {
                 selection: Binding(
                   get: {
                     Color(
-                      hex: screen.wrappedValue.deviceFrameConfig.frameColorHex
+                      hex: screen.wrappedValue.deviceFrameConfig(for: category).frameColorHex
                     )
                   },
                   set: {
-                    screen.wrappedValue.deviceFrameConfig.frameColorHex =
-                      $0.toHex()
+                    configBinding.wrappedValue.frameColorHex = $0.toHex()
                   }
                 )
               )
               .labelsHidden()
               .frame(width: 24, height: 24)
-              TextField("Hex", text: screen.deviceFrameConfig.frameColorHex)
+              TextField("Hex", text: configBinding.frameColorHex)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 11, design: .monospaced))
             }
@@ -670,14 +678,14 @@ struct PropertiesPanelView: View {
           PropertyField(label: "Bezel Width") {
             HStack {
               Slider(
-                value: screen.deviceFrameConfig.bezelWidthRatio,
+                value: configBinding.bezelWidthRatio,
                 in: 0.0...3.0,
                 step: 0.1
               )
               Text(
                 String(
                   format: "%.1f×",
-                  screen.wrappedValue.deviceFrameConfig.bezelWidthRatio
+                  screen.wrappedValue.deviceFrameConfig(for: category).bezelWidthRatio
                 )
               )
               .font(.system(size: 10, design: .monospaced))
@@ -689,14 +697,14 @@ struct PropertiesPanelView: View {
           PropertyField(label: "Corner Radius") {
             HStack {
               Slider(
-                value: screen.deviceFrameConfig.cornerRadiusRatio,
+                value: configBinding.cornerRadiusRatio,
                 in: 0.0...3.0,
                 step: 0.1
               )
               Text(
                 String(
                   format: "%.1f×",
-                  screen.wrappedValue.deviceFrameConfig.cornerRadiusRatio
+                  screen.wrappedValue.deviceFrameConfig(for: category).cornerRadiusRatio
                 )
               )
               .font(.system(size: 10, design: .monospaced))
@@ -710,22 +718,22 @@ struct PropertiesPanelView: View {
 
             Toggle(
               "Show Dynamic Island",
-              isOn: screen.deviceFrameConfig.showDynamicIsland
+              isOn: configBinding.showDynamicIsland
             )
             .font(.system(size: 12))
 
-            if screen.wrappedValue.deviceFrameConfig.showDynamicIsland {
+            if screen.wrappedValue.deviceFrameConfig(for: category).showDynamicIsland {
               PropertyField(label: "Island Width") {
                 HStack {
                   Slider(
-                    value: screen.deviceFrameConfig.dynamicIslandWidthRatio,
+                    value: configBinding.dynamicIslandWidthRatio,
                     in: 0.1...3.0,
                     step: 0.1
                   )
                   Text(
                     String(
                       format: "%.1f×",
-                      screen.wrappedValue.deviceFrameConfig
+                      screen.wrappedValue.deviceFrameConfig(for: category)
                         .dynamicIslandWidthRatio
                     )
                   )
@@ -738,14 +746,14 @@ struct PropertiesPanelView: View {
               PropertyField(label: "Island Height") {
                 HStack {
                   Slider(
-                    value: screen.deviceFrameConfig.dynamicIslandHeightRatio,
+                    value: configBinding.dynamicIslandHeightRatio,
                     in: 0.1...3.0,
                     step: 0.1
                   )
                   Text(
                     String(
                       format: "%.1f×",
-                      screen.wrappedValue.deviceFrameConfig
+                      screen.wrappedValue.deviceFrameConfig(for: category)
                         .dynamicIslandHeightRatio
                     )
                   )
@@ -771,7 +779,7 @@ struct PropertiesPanelView: View {
           Divider()
 
           Button {
-            screen.wrappedValue.deviceFrameConfig = .default
+            screen.wrappedValue.setDeviceFrameConfig(.default, for: category)
           } label: {
             Label("Reset to Default", systemImage: "arrow.counterclockwise")
               .font(.system(size: 11))

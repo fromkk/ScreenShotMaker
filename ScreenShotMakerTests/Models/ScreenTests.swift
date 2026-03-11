@@ -145,18 +145,20 @@ struct ScreenTests {
   @Test("Screen defaults to portrait")
   func testScreenDefaultPortrait() {
     let screen = Screen()
-    #expect(screen.isLandscape == false)
+    #expect(screen.isLandscape(for: .iPhone) == false)
+    #expect(screen.isLandscape(for: .iPad) == false)
   }
 
   @Test("Screen landscape encodes and decodes")
   func testScreenLandscapeCodable() throws {
     var screen = Screen(name: "Landscape Test")
-    screen.isLandscape = true
+    screen.setIsLandscape(true, for: .iPhone)
 
     let data = try JSONEncoder().encode(screen)
     let decoded = try JSONDecoder().decode(Screen.self, from: data)
 
-    #expect(decoded.isLandscape == true)
+    #expect(decoded.isLandscape(for: .iPhone) == true)
+    #expect(decoded.isLandscape(for: .iPad) == false)
   }
 
   @Test("Screen decodes legacy format without isLandscape")
@@ -177,7 +179,7 @@ struct ScreenTests {
       """
     let data = Data(legacyJSON.utf8)
     let screen = try JSONDecoder().decode(Screen.self, from: data)
-    #expect(screen.isLandscape == false)
+    #expect(screen.isLandscape(for: .iPhone) == false)
   }
 
   // MARK: - TextStyle Tests
@@ -335,28 +337,87 @@ struct ScreenTests {
       """
     let data = Data(legacyJSON.utf8)
     let screen = try JSONDecoder().decode(Screen.self, from: data)
-    #expect(screen.deviceFrameConfig == .default)
+    #expect(screen.deviceFrameConfig(for: .iPhone) == .default)
   }
 
   @Test("DeviceFrameConfig persists through Screen encoding")
   func testDeviceFrameConfigInScreen() throws {
     var screen = Screen(name: "Frame Config Test")
-    screen.deviceFrameConfig = DeviceFrameConfig(
-      frameColorHex: "#333333",
-      bezelWidthRatio: 1.5,
-      cornerRadiusRatio: 0.5,
-      showDynamicIsland: false,
-      dynamicIslandWidthRatio: 0.8,
-      dynamicIslandHeightRatio: 0.9
+    screen.setDeviceFrameConfig(
+      DeviceFrameConfig(
+        frameColorHex: "#333333",
+        bezelWidthRatio: 1.5,
+        cornerRadiusRatio: 0.5,
+        showDynamicIsland: false,
+        dynamicIslandWidthRatio: 0.8,
+        dynamicIslandHeightRatio: 0.9
+      ),
+      for: .iPhone
     )
 
     let data = try JSONEncoder().encode(screen)
     let decoded = try JSONDecoder().decode(Screen.self, from: data)
 
-    #expect(decoded.deviceFrameConfig.frameColorHex == "#333333")
-    #expect(decoded.deviceFrameConfig.bezelWidthRatio == 1.5)
-    #expect(decoded.deviceFrameConfig.showDynamicIsland == false)
-    #expect(decoded.deviceFrameConfig.dynamicIslandWidthRatio == 0.8)
+    #expect(decoded.deviceFrameConfig(for: .iPhone).frameColorHex == "#333333")
+    #expect(decoded.deviceFrameConfig(for: .iPhone).bezelWidthRatio == 1.5)
+    #expect(decoded.deviceFrameConfig(for: .iPhone).showDynamicIsland == false)
+    #expect(decoded.deviceFrameConfig(for: .iPhone).dynamicIslandWidthRatio == 0.8)
+  }
+
+  @Test("deviceFrameConfig(for:) is independent per category")
+  func testDeviceFrameConfigPerCategory() {
+    var screen = Screen()
+    let iPhoneConfig = DeviceFrameConfig(frameColorHex: "#000000", bezelWidthRatio: 2.0, cornerRadiusRatio: 0.5)
+    let iPadConfig = DeviceFrameConfig(frameColorHex: "#FFFFFF", bezelWidthRatio: 0.5, cornerRadiusRatio: 1.5)
+
+    screen.setDeviceFrameConfig(iPhoneConfig, for: .iPhone)
+    screen.setDeviceFrameConfig(iPadConfig, for: .iPad)
+
+    #expect(screen.deviceFrameConfig(for: .iPhone).frameColorHex == "#000000")
+    #expect(screen.deviceFrameConfig(for: .iPhone).bezelWidthRatio == 2.0)
+    #expect(screen.deviceFrameConfig(for: .iPad).frameColorHex == "#FFFFFF")
+    #expect(screen.deviceFrameConfig(for: .iPad).bezelWidthRatio == 0.5)
+    // mac not set → fallback to .default
+    #expect(screen.deviceFrameConfig(for: .mac) == .default)
+  }
+
+  @Test("Migration from legacy deviceFrameConfig applies to all categories")
+  func testDeviceFrameConfigMigration() throws {
+    let legacyJSON = """
+      {
+        "id": "00000000-0000-0000-0000-000000000099",
+        "name": "Migration Test",
+        "layoutPreset": "textTop",
+        "localizedTexts": {"en": {"title": "", "subtitle": ""}},
+        "background": {"solidColor": {"_0": {"hex": "#FFFFFF"}}},
+        "showDeviceFrame": true,
+        "fontFamily": "SF Pro Display",
+        "fontSizes": {},
+        "textColorHex": "#FFFFFF",
+        "titleStyle": {"isBold": true, "isItalic": false, "alignment": "center"},
+        "subtitleStyle": {"isBold": false, "isItalic": false, "alignment": "center"},
+        "deviceFrameConfig": {
+          "frameColorHex": "#AABBCC",
+          "bezelWidthRatio": 1.5,
+          "cornerRadiusRatio": 0.8,
+          "showDynamicIsland": false,
+          "dynamicIslandWidthRatio": 1.0,
+          "dynamicIslandHeightRatio": 1.0
+        },
+        "screenshotContentMode": "fit",
+        "textToImageSpacing": 20.0,
+        "fitFrameToImage": false
+      }
+      """
+    let data = legacyJSON.data(using: .utf8)!
+    let screen = try JSONDecoder().decode(Screen.self, from: data)
+
+    // Legacy config should be applied to all categories
+    for category in DeviceCategory.allCases {
+      #expect(screen.deviceFrameConfig(for: category).frameColorHex == "#AABBCC")
+      #expect(screen.deviceFrameConfig(for: category).bezelWidthRatio == 1.5)
+      #expect(screen.deviceFrameConfig(for: category).showDynamicIsland == false)
+    }
   }
 
   // MARK: - Per-Language Screenshot Image Tests (#039)

@@ -55,8 +55,8 @@ struct CanvasView: View {
   }
 
   private func screenshotPreview(screen: Screen, device: DeviceSize) -> some View {
-    let w = device.effectiveWidth(isLandscape: screen.isLandscape)
-    let h = device.effectiveHeight(isLandscape: screen.isLandscape)
+    let w = device.effectiveWidth(isLandscape: screen.isLandscape(for: device.category))
+    let h = device.effectiveHeight(isLandscape: screen.isLandscape(for: device.category))
     let previewWidth = Double(w) * previewScale
     let previewHeight = Double(h) * previewScale
 
@@ -267,10 +267,10 @@ struct CanvasView: View {
 
     if screen.showDeviceFrame, let device = state.selectedDevice {
       let baseFrameW =
-        Double(device.effectiveWidth(isLandscape: screen.isLandscape)) * effectiveZoom
+        Double(device.effectiveWidth(isLandscape: screen.isLandscape(for: device.category))) * effectiveZoom
         * 0.15 * 0.7
       let baseFrameH =
-        Double(device.effectiveHeight(isLandscape: screen.isLandscape)) * effectiveZoom
+        Double(device.effectiveHeight(isLandscape: screen.isLandscape(for: device.category))) * effectiveZoom
         * 0.15 * 0.7
       let languageCode = state.selectedLanguage?.code ?? "en"
       let bookmarkHash = screen.screenshotVideoBookmarkData(
@@ -285,7 +285,7 @@ struct CanvasView: View {
         category: device.category,
         screenWidth: fitted.width,
         screenHeight: fitted.height,
-        config: screen.deviceFrameConfig
+        config: screen.deviceFrameConfig(for: device.category)
       ) {
         screenshotContent
       }
@@ -445,8 +445,8 @@ struct CanvasView: View {
       }
 
       if let device = state.selectedDevice, let screen = state.selectedScreen {
-        let w = device.effectiveWidth(isLandscape: screen.isLandscape)
-        let h = device.effectiveHeight(isLandscape: screen.isLandscape)
+        let w = device.effectiveWidth(isLandscape: screen.isLandscape(for: device.category))
+        let h = device.effectiveHeight(isLandscape: screen.isLandscape(for: device.category))
         Text("\(w) × \(h) px")
           .font(.system(size: 10))
           .foregroundStyle(.tertiary)

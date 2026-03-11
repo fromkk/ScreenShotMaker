@@ -222,8 +222,8 @@ struct ProjectStateTests {
     #expect(duplicated.fontSize(for: .iPhone) == original.fontSize(for: .iPhone))
     #expect(duplicated.textColorHex == original.textColorHex)
     #expect(duplicated.showDeviceFrame == original.showDeviceFrame)
-    #expect(duplicated.isLandscape == original.isLandscape)
-    #expect(duplicated.deviceFrameConfig == original.deviceFrameConfig)
+    #expect(duplicated.isLandscapeByCategory == original.isLandscapeByCategory)
+    #expect(duplicated.deviceFrameConfigs == original.deviceFrameConfigs)
     #expect(duplicated.screenshotContentMode == original.screenshotContentMode)
     #expect(state.selectedScreenID == duplicated.id)
   }
@@ -371,17 +371,20 @@ struct ProjectStateTests {
     screen.setFontSize(40, for: .iPhone)
     screen.textColorHex = "#000000"
     screen.showDeviceFrame = false
-    screen.isLandscape = true
+    screen.setIsLandscape(true, for: .iPhone)
     screen.titleStyle = TextStyle(isBold: false, isItalic: true, alignment: .leading)
     screen.subtitleStyle = TextStyle(isBold: true, isItalic: false, alignment: .trailing)
     screen.screenshotContentMode = .fill
-    screen.deviceFrameConfig = DeviceFrameConfig(
-      frameColorHex: "#FFFFFF",
-      bezelWidthRatio: 0.5,
-      cornerRadiusRatio: 0.8,
-      showDynamicIsland: false,
-      dynamicIslandWidthRatio: 0.7,
-      dynamicIslandHeightRatio: 0.6
+    screen.setDeviceFrameConfig(
+      DeviceFrameConfig(
+        frameColorHex: "#FFFFFF",
+        bezelWidthRatio: 0.5,
+        cornerRadiusRatio: 0.8,
+        showDynamicIsland: false,
+        dynamicIslandWidthRatio: 0.7,
+        dynamicIslandHeightRatio: 0.6
+      ),
+      for: .iPhone
     )
     state.updateScreen(screen)
 
@@ -393,16 +396,16 @@ struct ProjectStateTests {
     #expect(newScreen.fontSize(for: .iPhone) == 40)
     #expect(newScreen.textColorHex == "#000000")
     #expect(newScreen.showDeviceFrame == false)
-    #expect(newScreen.isLandscape == true)
+    #expect(newScreen.isLandscape(for: .iPhone) == true)
     #expect(newScreen.titleStyle.isBold == false)
     #expect(newScreen.titleStyle.isItalic == true)
     #expect(newScreen.titleStyle.alignment == .leading)
     #expect(newScreen.subtitleStyle.isBold == true)
     #expect(newScreen.subtitleStyle.alignment == .trailing)
     #expect(newScreen.screenshotContentMode == .fill)
-    #expect(newScreen.deviceFrameConfig.frameColorHex == "#FFFFFF")
-    #expect(newScreen.deviceFrameConfig.bezelWidthRatio == 0.5)
-    #expect(newScreen.deviceFrameConfig.showDynamicIsland == false)
+    #expect(newScreen.deviceFrameConfig(for: .iPhone).frameColorHex == "#FFFFFF")
+    #expect(newScreen.deviceFrameConfig(for: .iPhone).bezelWidthRatio == 0.5)
+    #expect(newScreen.deviceFrameConfig(for: .iPhone).showDynamicIsland == false)
   }
 
   @Test("addScreen does not copy text content")
@@ -448,7 +451,7 @@ struct ProjectStateTests {
     #expect(screen.fontFamily == "SF Pro Display")
     #expect(screen.fontSize(for: .iPhone) == 96.0)
     #expect(screen.showDeviceFrame == true)
-    #expect(screen.isLandscape == false)
+    #expect(screen.isLandscape(for: .iPhone) == false)
     #expect(screen.screenshotContentMode == .fit)
   }
 

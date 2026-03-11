@@ -71,7 +71,7 @@ struct Screen: Identifiable, Hashable {
   var screenshotVideoPosterTimes: [String: Double]
 
   var showDeviceFrame: Bool
-  var isLandscape: Bool
+  var isLandscapeByCategory: [String: Bool]
   var fontFamily: String
   var fontSizes: [String: Double]
   var textColorHex: String
@@ -99,9 +99,30 @@ struct Screen: Identifiable, Hashable {
   mutating func setFontSize(_ size: Double, for category: DeviceCategory) {
     fontSizes[category.rawValue] = size
   }
+
+  /// Get landscape orientation for a specific device category
+  func isLandscape(for category: DeviceCategory) -> Bool {
+    isLandscapeByCategory[category.rawValue] ?? false
+  }
+
+  /// Set landscape orientation for a specific device category
+  mutating func setIsLandscape(_ value: Bool, for category: DeviceCategory) {
+    isLandscapeByCategory[category.rawValue] = value
+  }
+
+  /// Get device frame config for a specific device category
+  func deviceFrameConfig(for category: DeviceCategory) -> DeviceFrameConfig {
+    deviceFrameConfigs[category.rawValue] ?? .default
+  }
+
+  /// Set device frame config for a specific device category
+  mutating func setDeviceFrameConfig(_ config: DeviceFrameConfig, for category: DeviceCategory) {
+    deviceFrameConfigs[category.rawValue] = config
+  }
+
   var titleStyle: TextStyle
   var subtitleStyle: TextStyle
-  var deviceFrameConfig: DeviceFrameConfig
+  var deviceFrameConfigs: [String: DeviceFrameConfig]
   var screenshotContentMode: ScreenshotContentMode
   var textToImageSpacing: CGFloat
   var fitFrameToImage: Bool
@@ -252,13 +273,13 @@ struct Screen: Identifiable, Hashable {
     screenshotVideoBookmarks: [String: Data] = [:],
     screenshotVideoPosterTimes: [String: Double] = [:],
     showDeviceFrame: Bool = true,
-    isLandscape: Bool = false,
+    isLandscapeByCategory: [String: Bool] = [:],
     fontFamily: String = FontHelper.defaultFontFamily,
     fontSize: Double = Screen.defaultFontSize,
     textColorHex: String = "#FFFFFF",
     titleStyle: TextStyle = TextStyle(isBold: true),
     subtitleStyle: TextStyle = TextStyle(isBold: false),
-    deviceFrameConfig: DeviceFrameConfig = .default,
+    deviceFrameConfigs: [String: DeviceFrameConfig] = [:],
     screenshotContentMode: ScreenshotContentMode = .fit,
     textToImageSpacing: CGFloat = 20.0,
     fitFrameToImage: Bool = false
@@ -272,13 +293,13 @@ struct Screen: Identifiable, Hashable {
     self.screenshotVideoBookmarks = screenshotVideoBookmarks
     self.screenshotVideoPosterTimes = screenshotVideoPosterTimes
     self.showDeviceFrame = showDeviceFrame
-    self.isLandscape = isLandscape
+    self.isLandscapeByCategory = isLandscapeByCategory
     self.fontFamily = fontFamily
     self.fontSizes = fontSize != Screen.defaultFontSize ? DeviceCategory.allCases.reduce(into: [String: Double]()) { $0[$1.rawValue] = fontSize } : [:]
     self.textColorHex = textColorHex
     self.titleStyle = titleStyle
     self.subtitleStyle = subtitleStyle
-    self.deviceFrameConfig = deviceFrameConfig
+    self.deviceFrameConfigs = deviceFrameConfigs
     self.screenshotContentMode = screenshotContentMode
     self.textToImageSpacing = textToImageSpacing
     self.fitFrameToImage = fitFrameToImage
@@ -290,8 +311,8 @@ struct Screen: Identifiable, Hashable {
 extension Screen: Codable {
   enum CodingKeys: String, CodingKey {
     case id, name, layoutPreset, localizedTexts, background, screenshotImages
-    case showDeviceFrame, isLandscape, fontFamily, fontSize, fontSizes, textColorHex
-    case titleStyle, subtitleStyle, deviceFrameConfig, screenshotContentMode
+    case showDeviceFrame, isLandscape, isLandscapeByCategory, fontFamily, fontSize, fontSizes, textColorHex
+    case titleStyle, subtitleStyle, deviceFrameConfig, deviceFrameConfigs, screenshotContentMode
     case textToImageSpacing, fitFrameToImage
     case screenshotVideoBookmarks, screenshotVideoPosterTimes
     // Legacy keys
@@ -329,7 +350,17 @@ extension Screen: Codable {
       screenshotImages = [:]
     }
     showDeviceFrame = try container.decode(Bool.self, forKey: .showDeviceFrame)
-    isLandscape = try container.decodeIfPresent(Bool.self, forKey: .isLandscape) ?? false
+    // Migration: try new isLandscapeByCategory dict first, fall back to legacy isLandscape Bool
+    if let byCategory = try container.decodeIfPresent([String: Bool].self, forKey: .isLandscapeByCategory) {
+      isLandscapeByCategory = byCategory
+    } else if let legacyLandscape = try container.decodeIfPresent(Bool.self, forKey: .isLandscape) {
+      // Migrate: apply legacy value to all rotation-supporting categories (iPhone, iPad)
+      isLandscapeByCategory = DeviceCategory.allCases
+        .filter { $0.supportsRotation }
+        .reduce(into: [String: Bool]()) { $0[$1.rawValue] = legacyLandscape }
+    } else {
+      isLandscapeByCategory = [:]
+    }
     fontFamily = try container.decode(String.self, forKey: .fontFamily)
     // Migration: try new fontSizes dict first, fall back to legacy single fontSize
     if let sizes = try container.decodeIfPresent([String: Double].self, forKey: .fontSizes) {
@@ -346,8 +377,17 @@ extension Screen: Codable {
     subtitleStyle =
       try container.decodeIfPresent(TextStyle.self, forKey: .subtitleStyle)
       ?? TextStyle(isBold: false)
-    deviceFrameConfig =
-      try container.decodeIfPresent(DeviceFrameConfig.self, forKey: .deviceFrameConfig) ?? .default
+    // Migration: try new deviceFrameConfigs dict first, fall back to legacy deviceFrameConfig
+    if let configs = try container.decodeIfPresent([String: DeviceFrameConfig].self, forKey: .deviceFrameConfigs) {
+      deviceFrameConfigs = configs
+    } else if let legacyConfig = try container.decodeIfPresent(DeviceFrameConfig.self, forKey: .deviceFrameConfig) {
+      // Migrate: apply legacy config to all frame-supporting categories
+      deviceFrameConfigs = DeviceCategory.allCases.reduce(into: [String: DeviceFrameConfig]()) {
+        $0[$1.rawValue] = legacyConfig
+      }
+    } else {
+      deviceFrameConfigs = [:]
+    }
     screenshotContentMode =
       try container.decodeIfPresent(ScreenshotContentMode.self, forKey: .screenshotContentMode)
       ?? .fit
@@ -388,13 +428,13 @@ extension Screen: Codable {
       try container.encode(screenshotVideoPosterTimes, forKey: .screenshotVideoPosterTimes)
     }
     try container.encode(showDeviceFrame, forKey: .showDeviceFrame)
-    try container.encode(isLandscape, forKey: .isLandscape)
+    try container.encode(isLandscapeByCategory, forKey: .isLandscapeByCategory)
     try container.encode(fontFamily, forKey: .fontFamily)
     try container.encode(fontSizes, forKey: .fontSizes)
     try container.encode(textColorHex, forKey: .textColorHex)
     try container.encode(titleStyle, forKey: .titleStyle)
     try container.encode(subtitleStyle, forKey: .subtitleStyle)
-    try container.encode(deviceFrameConfig, forKey: .deviceFrameConfig)
+    try container.encode(deviceFrameConfigs, forKey: .deviceFrameConfigs)
     try container.encode(screenshotContentMode, forKey: .screenshotContentMode)
     try container.encode(textToImageSpacing, forKey: .textToImageSpacing)
     try container.encode(fitFrameToImage, forKey: .fitFrameToImage)

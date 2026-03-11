@@ -154,15 +154,15 @@ final class ProjectState {
         layoutPreset: prev.layoutPreset,
         background: prev.background,
         showDeviceFrame: prev.showDeviceFrame,
-        isLandscape: prev.isLandscape,
         fontFamily: prev.fontFamily,
         textColorHex: prev.textColorHex,
         titleStyle: prev.titleStyle,
         subtitleStyle: prev.subtitleStyle,
-        deviceFrameConfig: prev.deviceFrameConfig,
         screenshotContentMode: prev.screenshotContentMode
       )
       screen.fontSizes = prev.fontSizes
+      screen.isLandscapeByCategory = prev.isLandscapeByCategory
+      screen.deviceFrameConfigs = prev.deviceFrameConfigs
     } else {
       screen = Screen(name: "Screen \(count)")
     }

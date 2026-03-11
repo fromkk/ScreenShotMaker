@@ -138,8 +138,8 @@ enum VideoExportService {
     isCancelled: (@Sendable () -> Bool)? = nil,
     onFrameProgress: (@Sendable (Int, Int) -> Void)? = nil
   ) async throws {
-    let exportWidth = Int(device.effectiveWidth(isLandscape: screen.isLandscape))
-    let exportHeight = Int(device.effectiveHeight(isLandscape: screen.isLandscape))
+    let exportWidth = Int(device.effectiveWidth(isLandscape: screen.isLandscape(for: device.category)))
+    let exportHeight = Int(device.effectiveHeight(isLandscape: screen.isLandscape(for: device.category)))
     let exportSize = CGSize(width: exportWidth, height: exportHeight)
 
     // Determine the video's display size (accounts for rotation transform)
@@ -649,7 +649,7 @@ enum VideoExportService {
 
     // Bezel from device frame (shifts the inner screen inward)
     let bezel: CGFloat
-    if screen.showDeviceFrame, let spec = device.category.frameSpec?.applying(screen.deviceFrameConfig) {
+    if screen.showDeviceFrame, let spec = device.category.frameSpec?.applying(screen.deviceFrameConfig(for: device.category)) {
       bezel = fittedW * spec.bezelRatio
     } else {
       bezel = 0
@@ -697,7 +697,7 @@ enum VideoExportService {
     }
 
     if screen.showDeviceFrame,
-       let spec = device.category.frameSpec?.applying(screen.deviceFrameConfig)
+       let spec = device.category.frameSpec?.applying(screen.deviceFrameConfig(for: device.category))
     {
       let bezel       = fittedW * spec.bezelRatio
       let outerCorner = fittedW * spec.cornerRadiusRatio
